@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvilCorp — Assume Breach Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #111118;
+    --bg-card: #16161f;
+    --bg-card-hover: #1c1c28;
+    --border: #25253a;
+    --border-glow: #2a2a45;
+    --text-primary: #e8e8f0;
+    --text-secondary: #8888a8;
+    --text-muted: #55556a;
+    --critical: #ff2255;
+    --critical-bg: rgba(255, 34, 85, 0.08);
+    --critical-border: rgba(255, 34, 85, 0.25);
+    --high: #ff8800;
+    --high-bg: rgba(255, 136, 0, 0.08);
+    --high-border: rgba(255, 136, 0, 0.25);
+    --accent: #00ccff;
+    --accent-dim: rgba(0, 204, 255, 0.15);
+    --green: #00dd77;
+    --green-bg: rgba(0, 221, 119, 0.08);
+    --font-display: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255, 34, 85, 0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 80% 80%, rgba(0, 204, 255, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 20% 70%, rgba(255, 136, 0, 0.05) 0%, transparent 50%);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.25;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent);
+  }
+
+  .hero-content {
+    position: relative;
+    text-align: center;
+    padding: 2rem;
+    animation: fadeUp 1s ease-out;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid var(--critical-border);
+    border-radius: 100px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--critical);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    background: var(--critical-bg);
+    margin-bottom: 2rem;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--critical);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: var(--text-secondary);
+    font-weight: 300;
+    margin-bottom: 3rem;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    justify-content: center;
+    max-width: 700px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .hero-meta-item {
+    background: var(--bg-card);
+    padding: 16px 28px;
+    flex: 1 1 140px;
+  }
+
+  .hero-meta-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .hero-meta-value {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .hero-scroll-cue {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    animation: fadeUp 1s ease-out 0.5s backwards;
+  }
+
+  .hero-scroll-cue .arrow {
+    width: 1px;
+    height: 30px;
+    background: linear-gradient(to bottom, var(--text-muted), transparent);
+    animation: scrollArrow 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollArrow {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.5); opacity: 0.3; }
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  section {
+    padding: 6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  section:last-child { border-bottom: none; }
+
+  /* ── Section headers ── */
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-desc {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    max-width: 640px;
+    line-height: 1.8;
+    margin-bottom: 3rem;
+  }
+
+  /* ── Severity stats ── */
+  .severity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 4rem;
+  }
+
+  .severity-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    text-align: center;
+    transition: background 0.3s;
+  }
+
+  .severity-card:hover { background: var(--bg-card-hover); }
+
+  .severity-count {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .severity-count.critical { color: var(--critical); }
+  .severity-count.high { color: var(--high); }
+  .severity-count.total { color: var(--text-primary); }
+
+  .severity-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    position: relative;
+    padding-left: 3rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--critical), var(--high), var(--accent), var(--green));
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.6s ease-out backwards;
+  }
+
+  .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+  .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+  .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+  .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+  .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+
+  .timeline-dot {
+    position: absolute;
+    left: -3rem;
+    top: 6px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid var(--critical);
+    background: var(--bg-primary);
+  }
+
+  .timeline-dot.high { border-color: var(--high); }
+  .timeline-dot.green { border-color: var(--green); }
+  .timeline-dot.accent { border-color: var(--accent); }
+
+  .timeline-time {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .timeline-label {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  .timeline-detail {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  /* ── Vulnerability cards ── */
+  .vuln-card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    background: var(--bg-card);
+    transition: border-color 0.3s;
+  }
+
+  .vuln-card:hover { border-color: var(--border-glow); }
+
+  .vuln-card.critical { border-left: 3px solid var(--critical); }
+  .vuln-card.high { border-left: 3px solid var(--high); }
+
+  .vuln-header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .vuln-header:hover { background: var(--bg-card-hover); }
+
+  .vuln-header-left { flex: 1; }
+
+  .vuln-number {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  .vuln-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .vuln-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .badge.critical {
+    background: var(--critical-bg);
+    border: 1px solid var(--critical-border);
+    color: var(--critical);
+  }
+
+  .badge.high {
+    background: var(--high-bg);
+    border: 1px solid var(--high-border);
+    color: var(--high);
+  }
+
+  .badge.cvss {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .vuln-body {
+    padding: 0 2rem 2rem;
+    display: none;
+  }
+
+  .vuln-body.open { display: block; }
+
+  .vuln-body p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  .vuln-body h4 {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .vuln-body h4:first-child { margin-top: 0; }
+
+  pre {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  pre .highlight { color: var(--critical); }
+  pre .cmd { color: var(--accent); }
+  pre .comment { color: var(--text-muted); }
+
+  .remediation-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .remediation-list li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.6rem;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+  }
+
+  .remediation-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  .expand-icon {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .expand-icon.open { transform: rotate(45deg); }
+
+  /* ── Findings ── */
+  .finding-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .finding-row:last-child { border-bottom: none; }
+
+  .finding-phase {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-top: 2px;
+    white-space: nowrap;
+  }
+
+  .finding-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .finding-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ── Assets table ── */
+  .assets-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.85rem;
+  }
+
+  .assets-table th {
+    background: var(--bg-secondary);
+    padding: 12px 16px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .assets-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  .assets-table tr:last-child td { border-bottom: none; }
+
+  .assets-table tr:hover td { background: var(--bg-card-hover); }
+
+  .assets-table .type-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .type-credential {
+    background: var(--critical-bg);
+    color: var(--critical);
+    border: 1px solid var(--critical-border);
+  }
+
+  .type-host {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(0, 204, 255, 0.25);
+  }
+
+  .type-user {
+    background: var(--high-bg);
+    color: var(--high);
+    border: 1px solid var(--high-border);
+  }
+
+  .type-domain, .type-gpo {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .mono { font-family: var(--font-mono); font-size: 0.8rem; }
+  .redacted { filter: blur(3px); transition: filter 0.3s; cursor: pointer; }
+  .redacted:hover { filter: blur(0); }
+
+  /* ── Recommendations ── */
+  .rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .rec-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    transition: background 0.3s;
+  }
+
+  .rec-card:hover { background: var(--bg-card-hover); }
+
+  .rec-priority {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.75rem;
+  }
+
+  .rec-priority.immediate { color: var(--critical); }
+  .rec-priority.short { color: var(--high); }
+  .rec-priority.medium { color: var(--accent); }
+
+  .rec-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .rec-desc {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  /* ── Footer ── */
+  .report-footer {
+    padding: 3rem 0;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  .report-footer .divider {
+    width: 40px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto 1.5rem;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s;
+  }
+
+  .nav.scrolled { border-bottom-color: var(--border); }
+
+  .nav-logo {
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--text-primary); }
+
+  /* ── Scope tags ── */
+  .scope-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 1rem;
+  }
+
+  .scope-tag {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+  }
+
+  .scope-tag.in-scope { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+  .scope-tag.oos { border-color: var(--critical-border); color: var(--text-muted); text-decoration: line-through; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .container { padding: 0 1.25rem; }
+    section { padding: 4rem 0; }
+    .hero-meta { flex-direction: column; }
+    .nav-links { display: none; }
+    .finding-row { grid-template-columns: 1fr; gap: 0.5rem; }
+    .assets-table { font-size: 0.75rem; }
+    .assets-table th, .assets-table td { padding: 8px 10px; }
+    .vuln-header { padding: 1.25rem 1.25rem; }
+    .vuln-body { padding: 0 1.25rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">PENTEST REPORT</div>
+  <ul class="nav-links">
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#attack-chain">Attack Chain</a></li>
+    <li><a href="#vulnerabilities">Vulnerabilities</a></li>
+    <li><a href="#findings">Findings</a></li>
+    <li><a href="#assets">Assets</a></li>
+    <li><a href="#recommendations">Remediation</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span>Critical — Domain Compromised</span>
+    </div>
+    <h1 class="hero-title">EvilCorp</h1>
+    <p class="hero-subtitle">Assume Breach Assessment — Infrastructure Penetration Test</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">
+        <div class="hero-meta-label">Test Type</div>
+        <div class="hero-meta-value">Infrastructure</div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-label">Knowledge</div>
+        <div class="hero-meta-value">Grey Box</div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-label">Scenario</div>
+        <div class="hero-meta-value">Assume Breach</div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-label">Domain</div>
+        <div class="hero-meta-value">evilcorp.local</div>
+      </div>
+      <div class="hero-meta-item">
+        <div class="hero-meta-label">Date</div>
+        <div class="hero-meta-value">2026-02-06</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll-cue">
+    <span>Scroll</span>
+    <div class="arrow"></div>
+  </div>
+</header>
+
+<!-- Executive Summary -->
+<section id="summary">
+  <div class="container">
+    <div class="section-label">01 — Executive Summary</div>
+    <h2 class="section-title">Full domain compromise<br>in under 5 minutes.</h2>
+    <p class="section-desc">
+      Starting from a low-privileged domain user, the entire attack chain — Kerberoasting, password cracking, DCSync, and enterprise-wide ransomware simulation — was completed in under 5 minutes. The root cause is a single service account with Domain Admin privileges and a trivially weak password.
+    </p>
+
+    <div class="severity-grid">
+      <div class="severity-card">
+        <div class="severity-count critical">3</div>
+        <div class="severity-label">Critical</div>
+      </div>
+      <div class="severity-card">
+        <div class="severity-count high">1</div>
+        <div class="severity-label">High</div>
+      </div>
+      <div class="severity-card">
+        <div class="severity-count total" style="color: var(--text-muted);">0</div>
+        <div class="severity-label">Medium / Low</div>
+      </div>
+      <div class="severity-card">
+        <div class="severity-count total">4</div>
+        <div class="severity-label">Total</div>
+      </div>
+    </div>
+
+    <div class="section-label">Scope</div>
+    <p class="section-desc" style="margin-bottom: 0.5rem;">Internal network penetration test of the evilcorp.local Active Directory domain. 847 users, 312 computers, 47 GPOs.</p>
+    <div class="scope-tags">
+      <span class="scope-tag in-scope">DC01</span>
+      <span class="scope-tag in-scope">DC02</span>
+      <span class="scope-tag in-scope">All Domain Hosts</span>
+      <span class="scope-tag oos">Cloud Resources</span>
+    </div>
+  </div>
+</section>
+
+<!-- Attack Chain Timeline -->
+<section id="attack-chain">
+  <div class="container">
+    <div class="section-label">02 — Attack Chain</div>
+    <h2 class="section-title">Kill chain timeline</h2>
+    <p class="section-desc">From low-privileged user to enterprise-wide ransomware simulation, demonstrating catastrophic risk from a single misconfigured service account.</p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot accent"></div>
+        <div class="timeline-time">T+00:00</div>
+        <div class="timeline-label">Initial Access — EVILCORP\jsmith</div>
+        <div class="timeline-detail">Started with provided low-privileged domain credentials on WS-PC01.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot accent"></div>
+        <div class="timeline-time">T+00:15</div>
+        <div class="timeline-label">Reconnaissance — BloodHound</div>
+        <div class="timeline-detail">Identified svc_veeam as Domain Admin with a Kerberoastable SPN. Shortest path: 1 hop.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-time">T+01:17</div>
+        <div class="timeline-label">Credential Access — Kerberoast + Crack</div>
+        <div class="timeline-detail">TGS hash retrieved and cracked in 47 seconds. Password: <span class="redacted">Backup2023!</span></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-time">T+02:00</div>
+        <div class="timeline-label">DCSync — 847 Accounts Extracted</div>
+        <div class="timeline-detail">Full credential dump including Administrator and krbtgt NTLM hashes (Golden Ticket capable).</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-time">T+04:45</div>
+        <div class="timeline-label">Impact — Ransomware Simulation via GPO</div>
+        <div class="timeline-detail">Malicious GPO deployed to domain root. 312 computers affected. Enterprise-wide impact demonstrated.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Vulnerabilities -->
+<section id="vulnerabilities">
+  <div class="container">
+    <div class="section-label">03 — Vulnerabilities</div>
+    <h2 class="section-title">Exploited vulnerabilities</h2>
+    <p class="section-desc">Detailed technical findings with proof-of-concept evidence and remediation steps. Click to expand.</p>
+
+    <!-- Vuln 1 -->
+    <div class="vuln-card critical" onclick="toggleVuln(this)">
+      <div class="vuln-header">
+        <div class="vuln-header-left">
+          <div class="vuln-number">Vulnerability 01</div>
+          <div class="vuln-title">Kerberoastable Service Account with Domain Admin Privileges</div>
+        </div>
+        <div class="vuln-badges">
+          <span class="badge critical">Critical</span>
+          <span class="badge cvss">CVSS 9.8</span>
+          <span class="expand-icon">+</span>
+        </div>
+      </div>
+      <div class="vuln-body">
+        <p>The service account <strong>svc_veeam</strong> has a registered SPN, making it vulnerable to Kerberoasting. Any authenticated domain user can request a TGS ticket and crack the password offline. This account is a member of <strong>Domain Admins</strong>, meaning a successful crack grants full domain control. The password was last set on 2022-11-03.</p>
+
+        <h4>Proof of Concept</h4>
+        <pre><span class="cmd">$</span> impacket-GetUserSPNs evilcorp.local/jsmith -dc-ip 10.10.10.10 -request
+
+ServicePrincipalName  : HTTP/VEEAM01.evilcorp.local
+Account               : svc_veeam
+MemberOf              : <span class="highlight">Domain Admins</span>
+PasswordLastSet       : 2022-11-03
+
+TGS Hash: $krb5tgs$23$*svc_veeam$EVILCORP.LOCAL$...</pre>
+
+        <h4>Remediation</h4>
+        <ul class="remediation-list">
+          <li>Remove svc_veeam from Domain Admins immediately</li>
+          <li>Implement Group Managed Service Accounts (gMSA)</li>
+          <li>Use 25+ character randomly generated passwords for traditional service accounts</li>
+          <li>Implement AES-256 encryption for Kerberos instead of RC4</li>
+          <li>Monitor for Kerberoasting via Event ID 4769 with RC4 encryption</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Vuln 2 -->
+    <div class="vuln-card critical" onclick="toggleVuln(this)">
+      <div class="vuln-header">
+        <div class="vuln-header-left">
+          <div class="vuln-number">Vulnerability 02</div>
+          <div class="vuln-title">DCSync — Full Domain Credential Extraction</div>
+        </div>
+        <div class="vuln-badges">
+          <span class="badge critical">Critical</span>
+          <span class="badge cvss">CVSS 10.0</span>
+          <span class="expand-icon">+</span>
+        </div>
+      </div>
+      <div class="vuln-body">
+        <p>Using the compromised svc_veeam Domain Admin account, a DCSync attack was performed against DC01 to replicate all domain password hashes. This extracted NTLM hashes for all <strong>847 domain accounts</strong>, including the built-in Administrator and krbtgt accounts. The krbtgt hash enables Golden Ticket attacks for persistent domain access.</p>
+
+        <h4>Proof of Concept</h4>
+        <pre><span class="cmd">$</span> impacket-secretsdump evilcorp.local/svc_veeam@10.10.10.10 -just-dc-ntlm
+
+Administrator:500:...: <span class="highlight">92937ae7...f3</span> :::
+krbtgt:502:...: <span class="highlight">f3bc61e9...5f</span> :::
+[...] <span class="highlight">847 accounts dumped</span></pre>
+
+        <h4>Remediation</h4>
+        <ul class="remediation-list">
+          <li>Remove svc_veeam from Domain Admins immediately</li>
+          <li>Audit all accounts with DCSync rights (Replicating Directory Changes)</li>
+          <li>Rotate krbtgt password twice to invalidate Golden Tickets</li>
+          <li>Reset all user passwords following a breach</li>
+          <li>Implement tiered administration model to limit DA usage</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Vuln 3 -->
+    <div class="vuln-card critical" onclick="toggleVuln(this)">
+      <div class="vuln-header">
+        <div class="vuln-header-left">
+          <div class="vuln-number">Vulnerability 03</div>
+          <div class="vuln-title">Ransomware Simulation via Malicious GPO Deployment</div>
+        </div>
+        <div class="vuln-badges">
+          <span class="badge critical">Critical</span>
+          <span class="badge cvss">CVSS 10.0</span>
+          <span class="expand-icon">+</span>
+        </div>
+      </div>
+      <div class="vuln-body">
+        <p>Using Domain Admin privileges, a GPO was created and linked to the domain root. This GPO deploys a startup script to <strong>all 312 domain-joined computers</strong> simulating a ransomware event. This demonstrates that an attacker who compromises a single Domain Admin service account can deploy ransomware enterprise-wide via native AD tooling, bypassing endpoint security.</p>
+
+        <h4>Proof of Concept</h4>
+        <pre>GPO Name   : <span class="highlight">"YOURNETWORKISNOTASSECUREASYOUTHINK"</span>
+GPO GUID   : {8F4E2A1B-3C5D-4E6F-A7B8-9C0D1E2F3A4B}
+Linked to  : DC=evilcorp,DC=local (domain root)
+Affects    : <span class="highlight">312 domain-joined computers</span>
+
+<span class="comment">// Script: creates ransom note + event log entry</span>
+@echo off
+echo YOUR NETWORK IS NOT AS SECURE AS YOU THINK > %USERPROFILE%\Desktop\README_RANSOM.txt
+eventcreate /T WARNING /ID 666 /L APPLICATION /D "Ransomware simulation"</pre>
+
+        <h4>Remediation</h4>
+        <ul class="remediation-list">
+          <li>Remove svc_veeam from Domain Admins</li>
+          <li>Restrict who can create/modify GPOs (audit GPO delegation)</li>
+          <li>Monitor for new GPO creation via Event IDs 5136/5137</li>
+          <li>Implement LAPS for local admin passwords</li>
+          <li>Deploy GPO change monitoring/alerting</li>
+          <li>Consider Privileged Access Workstations (PAWs)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Vuln 4 -->
+    <div class="vuln-card high" onclick="toggleVuln(this)">
+      <div class="vuln-header">
+        <div class="vuln-header-left">
+          <div class="vuln-number">Vulnerability 04</div>
+          <div class="vuln-title">SMB Signing Not Required</div>
+        </div>
+        <div class="vuln-badges">
+          <span class="badge high">High</span>
+          <span class="badge cvss">CVSS 7.4</span>
+          <span class="expand-icon">+</span>
+        </div>
+      </div>
+      <div class="vuln-body">
+        <p><strong>23 hosts</strong> in the domain do not enforce SMB signing, making them vulnerable to NTLM relay attacks. An attacker who can perform a man-in-the-middle attack can relay NTLM authentication to these hosts to gain unauthorized access.</p>
+
+        <h4>Proof of Concept</h4>
+        <pre><span class="cmd">$</span> crackmapexec smb 10.10.10.0/24 --gen-relay-list
+
+<span class="highlight">23 targets identified</span> without SMB signing requirement.</pre>
+
+        <h4>Remediation</h4>
+        <ul class="remediation-list">
+          <li>Enable SMB signing via Group Policy: Computer Configuration → Policies → Windows Settings → Security Settings → Local Policies → Security Options</li>
+          <li>Set "Microsoft network server: Digitally sign communications (always)" = Enabled</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Key Findings -->
+<section id="findings">
+  <div class="container">
+    <div class="section-label">04 — Key Findings</div>
+    <h2 class="section-title">Assessment findings</h2>
+
+    <div class="finding-row">
+      <div class="finding-phase">Phase 2</div>
+      <div class="finding-text"><strong>svc_veeam is a Domain Admin.</strong> This service account for Veeam Backup is a member of Domain Admins, violating least privilege and creating a high-value Kerberoasting target.</div>
+      <span class="badge critical">Critical</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-phase">Phase 4</div>
+      <div class="finding-text"><strong>23 hosts lack SMB signing.</strong> Domain-joined workstations and servers do not enforce SMB signing, enabling NTLM relay attacks.</div>
+      <span class="badge high">High</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-phase">Phase 5</div>
+      <div class="finding-text"><strong>Service account password cracked in 47 seconds.</strong> The svc_veeam password "Backup2023!" was cracked using hashcat with rockyou.txt — trivially weak for a Domain Admin account.</div>
+      <span class="badge critical">Critical</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-phase">Phase 6</div>
+      <div class="finding-text"><strong>Full kill chain completed in under 5 minutes.</strong> User → Kerberoast → Crack → DA → DCSync → Ransomware GPO. 847 accounts dumped, 312 computers impacted.</div>
+      <span class="badge critical">Critical</span>
+    </div>
+  </div>
+</section>
+
+<!-- Discovered Assets -->
+<section id="assets">
+  <div class="container">
+    <div class="section-label">05 — Discovered Assets</div>
+    <h2 class="section-title">Asset inventory</h2>
+    <p class="section-desc">All hosts, credentials, and objects discovered or compromised during the assessment. Sensitive values are blurred — hover to reveal.</p>
+
+    <div style="overflow-x: auto;">
+      <table class="assets-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="type-badge type-domain">domain</span></td>
+            <td class="mono">evilcorp.local</td>
+            <td>Primary AD domain</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">DC01.evilcorp.local (10.10.10.10)</td>
+            <td>Primary Domain Controller — Server 2019</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">DC02.evilcorp.local (10.10.10.11)</td>
+            <td>Secondary Domain Controller — Server 2019</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">WS-PC01 (10.10.10.50)</td>
+            <td>Operator starting workstation</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">SQL01.evilcorp.local (10.10.10.20)</td>
+            <td>SQL Server</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">WEB01.evilcorp.local (10.10.10.21)</td>
+            <td>IIS Web Server</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">VEEAM01.evilcorp.local (10.10.10.30)</td>
+            <td>Veeam Backup Server</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">FS01.evilcorp.local (10.10.10.31)</td>
+            <td>File Server</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-host">host</span></td>
+            <td class="mono">EXCH01.evilcorp.local (10.10.10.40)</td>
+            <td>Exchange Server</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-user">user</span></td>
+            <td class="mono">svc_veeam</td>
+            <td><span class="badge critical" style="font-size:0.55rem; padding: 2px 8px;">Domain Admin</span> Kerberoastable — SPN: HTTP/VEEAM01</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-user">user</span></td>
+            <td class="mono">svc_sql</td>
+            <td>SQLAdmins — SPN: MSSQLSvc/SQL01</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-user">user</span></td>
+            <td class="mono">svc_iis</td>
+            <td>WebAdmins — SPN: HTTP/WEB01</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-user">user</span></td>
+            <td class="mono">svc_backup</td>
+            <td>BackupOperators — SPN: CIFS/BACKUP01</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-credential">cred</span></td>
+            <td class="mono">EVILCORP\jsmith : <span class="redacted">Summer2024!</span></td>
+            <td>Low-privileged domain user (provided by client)</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-credential">cred</span></td>
+            <td class="mono">EVILCORP\svc_veeam : <span class="redacted">Backup2023!</span></td>
+            <td><span class="badge critical" style="font-size:0.55rem; padding: 2px 8px;">Domain Admin</span> Cracked via Kerberoasting in 47s</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-credential">cred</span></td>
+            <td class="mono">Administrator : <span class="redacted">92937ae7...f3</span></td>
+            <td>Built-in Admin NTLM hash via DCSync</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-credential">cred</span></td>
+            <td class="mono">krbtgt : <span class="redacted">f3bc61e9...5f</span></td>
+            <td>Enables Golden Ticket attacks</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge type-gpo">gpo</span></td>
+            <td class="mono" style="font-size:0.7rem;">YOURNETWORKISNOTASSECUREASYOUTHINK</td>
+            <td>Ransomware simulation — linked to domain root — 312 computers</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Recommendations -->
+<section id="recommendations">
+  <div class="container">
+    <div class="section-label">06 — Remediation</div>
+    <h2 class="section-title">Recommended actions</h2>
+    <p class="section-desc">Prioritized remediation steps to address the identified vulnerabilities and harden the evilcorp.local domain.</p>
+
+    <div class="rec-grid">
+      <div class="rec-card">
+        <div class="rec-priority immediate">Immediate</div>
+        <div class="rec-title">Remove svc_veeam from Domain Admins</div>
+        <div class="rec-desc">This is the root cause of the entire attack chain. Removing DA privileges eliminates the single-hop path to domain compromise.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority immediate">Immediate</div>
+        <div class="rec-title">Rotate krbtgt password twice</div>
+        <div class="rec-desc">The krbtgt hash was extracted via DCSync. A double rotation invalidates all existing Golden Tickets.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority immediate">Immediate</div>
+        <div class="rec-title">Reset all domain passwords</div>
+        <div class="rec-desc">All 847 account NTLM hashes were extracted. A domain-wide password reset is required to invalidate compromised credentials.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority short">Short-Term</div>
+        <div class="rec-title">Implement gMSA for service accounts</div>
+        <div class="rec-desc">Group Managed Service Accounts use auto-rotated 240-character passwords, eliminating Kerberoasting risk entirely.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority short">Short-Term</div>
+        <div class="rec-title">Enforce SMB signing domain-wide</div>
+        <div class="rec-desc">23 hosts currently lack SMB signing. Enable via Group Policy to prevent NTLM relay attacks.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority short">Short-Term</div>
+        <div class="rec-title">Monitor Kerberoasting (Event ID 4769)</div>
+        <div class="rec-desc">Alert on TGS requests with RC4 encryption type (0x17). This detects Kerberoasting attempts in real time.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority medium">Medium-Term</div>
+        <div class="rec-title">Implement tiered administration</div>
+        <div class="rec-desc">Separate Tier 0 (DCs), Tier 1 (servers), and Tier 2 (workstations) administration to contain breaches.</div>
+      </div>
+      <div class="rec-card">
+        <div class="rec-priority medium">Medium-Term</div>
+        <div class="rec-title">Audit and restrict GPO delegation</div>
+        <div class="rec-desc">Monitor GPO creation/modification via Event IDs 5136/5137. Restrict who can link GPOs to the domain root.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="report-footer">
+  <div class="container">
+    <div class="divider"></div>
+    <p>EvilCorp Assume Breach Assessment — 2026-02-06</p>
+    <p style="margin-top: 4px; color: var(--text-muted);">Cleanup completed. All tools and artifacts removed. Client notified.</p>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Toggle vulnerability cards
+  function toggleVuln(card) {
+    const body = card.querySelector('.vuln-body');
+    const icon = card.querySelector('.expand-icon');
+    const isOpen = body.classList.contains('open');
+
+    // Close all others
+    document.querySelectorAll('.vuln-body.open').forEach(b => {
+      b.classList.remove('open');
+      b.closest('.vuln-card').querySelector('.expand-icon').classList.remove('open');
+      b.closest('.vuln-card').querySelector('.expand-icon').textContent = '+';
+    });
+
+    if (!isOpen) {
+      body.classList.add('open');
+      icon.classList.add('open');
+      icon.textContent = '×';
+    }
+  }
+
+  // Animate elements on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section').forEach(section => {
+    section.style.opacity = '0';
+    section.style.transform = 'translateY(30px)';
+    section.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+    observer.observe(section);
+  });
+</script>
+
+</body>
+</html>
